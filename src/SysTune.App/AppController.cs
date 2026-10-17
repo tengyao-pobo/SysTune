@@ -30,6 +30,9 @@ internal sealed class AppController : IDisposable
         Monitoring = 8,
         Layout = 16,
         Spotify = 32,
+
+        /// <summary>Tint opacity only: cheap, no backdrop re-application (the slider fires continuously).</summary>
+        Tint = 64,
     }
 
     private readonly SettingsStore _store;
@@ -268,6 +271,7 @@ internal sealed class AppController : IDisposable
             _theme.Apply(Settings.Theme);
             ApplyGlass();
         }
+        if (area.HasFlag(Area.Tint)) _settingsWindow?.UpdateTint();
         if (area.HasFlag(Area.Window)) _window?.ApplyWindowSettings();
         if (area.HasFlag(Area.Startup)) AutoStart.Apply(Settings.StartWithWindows, Log);
         if (area.HasFlag(Area.Monitoring))

@@ -116,7 +116,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnGlassChanged(GlassMode value) => Change(() => S.Glass = value, AppController.Area.Appearance);
 
-    partial void OnTintOpacityPercentChanged(double value) => Change(() => S.TintOpacity = value / 100.0, AppController.Area.Appearance);
+    partial void OnTintOpacityPercentChanged(double value) => Change(() => S.TintOpacity = value / 100.0, AppController.Area.Tint);
 
     partial void OnAlwaysOnTopChanged(bool value) => Change(() => S.AlwaysOnTop = value, AppController.Area.Window);
 
@@ -235,7 +235,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private static void OpenDashboard() => Open("https://developer.spotify.com/dashboard");
 
     [RelayCommand]
-    private static void OpenGuide() => Open("https://github.com/Tglobalcorp-MIS/SysTune/blob/main/docs/SPOTIFY_SETUP.md");
+    private static void OpenGuide() => Open("https://github.com/tengyao-pobo/SysTune/blob/main/docs/SPOTIFY_SETUP.md");
 
     [RelayCommand]
     private static void OpenLogs()

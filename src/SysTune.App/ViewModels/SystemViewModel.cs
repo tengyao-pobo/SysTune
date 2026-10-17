@@ -209,10 +209,14 @@ public sealed partial class DriveItem : ObservableObject
 
     [ObservableProperty] public partial string Text { get; set; } = "";
 
+    /// <summary>Normal / Warn (≥ 85 %) / Danger (≥ 95 %), used for theme-aware colouring.</summary>
+    [ObservableProperty] public partial string Level { get; set; } = "Normal";
+
     public void Update(DriveSnapshot d)
     {
         Name = d.Name;
         UsedPercent = d.UsedPercent;
+        Level = d.UsedPercent >= 95 ? "Danger" : d.UsedPercent >= 85 ? "Warn" : "Normal";
         Text = $"{Fmt.Bytes(d.UsedBytes, 0)} / {Fmt.Bytes(d.TotalBytes, 0)}";
         Tooltip = $"{(string.IsNullOrWhiteSpace(d.Label) ? "本機磁碟" : d.Label)} ({d.Name}) · {d.Format}\n可用 {Fmt.Bytes(d.FreeBytes)}（{Fmt.Percent(100 - d.UsedPercent)}）";
     }

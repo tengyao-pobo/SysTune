@@ -34,7 +34,7 @@ internal sealed class ArtworkLoader
             var bytes = await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
             return Decode(url, bytes);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException or InvalidOperationException)
         {
             if (!ct.IsCancellationRequested) _log.Debug("Artwork download failed: " + ex.Message);
             return null;
@@ -67,7 +67,7 @@ internal sealed class ArtworkLoader
             }
             return img;
         }
-        catch (Exception ex) when (ex is NotSupportedException or IOException or InvalidOperationException or ArgumentException or System.Runtime.InteropServices.COMException)
+        catch (Exception ex) when (ex is NotSupportedException or IOException or InvalidOperationException or ArgumentException or FormatException or System.Runtime.InteropServices.COMException or OverflowException)
         {
             _log.Debug("Artwork decode failed: " + ex.Message);
             return null;

@@ -17,6 +17,8 @@ internal sealed class LocalMediaSession : IDisposable
     private readonly ILog _log;
     private readonly IClock _clock;
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
+    private readonly SemaphoreSlim _selectGate = new(1, 1);
+    private Task? _startTask;
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _session;
     private string? _artKey;
@@ -36,12 +38,15 @@ internal sealed class LocalMediaSession : IDisposable
 
     public byte[]? Artwork => _art;
 
-    public async Task StartAsync()
+    /// <summary>Idempotent: the session manager is created once.</summary>
+    public Task StartAsync() => _startTask ??= StartCoreAsync();
+
+    private async Task StartCoreAsync()
     {
         try
         {
             _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-            _manager.SessionsChanged += (_, _) => _ = SelectSessionAsync();
+            _manager.SessionsChanged += OnSessionsChanged;
             await SelectSessionAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -50,16 +55,32 @@ internal sealed class LocalMediaSession : IDisposable
         }
     }
 
+    private void OnSessionsChanged(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args) => _ = SelectSessionAsync();
+
     private static bool IsSpotify(GlobalSystemMediaTransportControlsSession s)
         => s.SourceAppUserModelId?.Contains("Spotify", StringComparison.OrdinalIgnoreCase) == true;
 
     private async Task SelectSessionAsync()
     {
         if (_manager is null || _disposed) return;
+        await _selectGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            SwitchSession();
+        }
+        finally
+        {
+            _selectGate.Release();
+        }
+        await RefreshAsync().ConfigureAwait(false);
+    }
+
+    private void SwitchSession()
+    {
         GlobalSystemMediaTransportControlsSession? next = null;
         try
         {
-            next = _manager.GetSessions().FirstOrDefault(IsSpotify);
+            next = _manager?.GetSessions().FirstOrDefault(IsSpotify);
         }
         catch (Exception ex)
         {
@@ -83,7 +104,6 @@ internal sealed class LocalMediaSession : IDisposable
                 _log.Info("Local Spotify media session found: " + _session.SourceAppUserModelId);
             }
         }
-        await RefreshAsync().ConfigureAwait(false);
     }
 
     private void OnSessionChanged(GlobalSystemMediaTransportControlsSession sender, object args) => _ = RefreshAsync();
@@ -104,10 +124,11 @@ internal sealed class LocalMediaSession : IDisposable
                 if (props is not null && !string.IsNullOrWhiteSpace(props.Title))
                 {
                     var key = props.Title + "\u001f" + props.Artist;
-                    if (key != _artKey)
+                    // The thumbnail often arrives in a later event than the title: keep retrying until we have one.
+                    if (key != _artKey || _art is null)
                     {
-                        _artKey = key;
                         _art = await ReadThumbnailAsync(props.Thumbnail).ConfigureAwait(false);
+                        _artKey = key;
                     }
 
                     var isPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
@@ -205,6 +226,7 @@ internal sealed class LocalMediaSession : IDisposable
     public void Dispose()
     {
         _disposed = true;
+        if (_manager is not null) _manager.SessionsChanged -= OnSessionsChanged;
         if (_session is not null)
         {
             _session.MediaPropertiesChanged -= OnSessionChanged;

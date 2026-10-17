@@ -45,8 +45,21 @@
                         </BeginStoryboard>
                     </DataTrigger.ExitActions>
                 </DataTrigger>
-                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
-                    <Setter Property="Opacity" Value="1" />
+                <DataTrigger Binding="{Binding IsKeyboardFocusWithin, RelativeSource={RelativeSource Self}}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.1" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" BeginTime="0:0:0.6" Duration="0:0:0.25" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.ExitActions>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -137,9 +150,7 @@
                             <TextBlock Text="{Binding PositionText}" Style="{StaticResource Text.Caption}" VerticalAlignment="Center" />
                             <Slider x:Name="SeekBar" Grid.Column="1" Style="{StaticResource GlassSlider}" Minimum="0"
                                     Maximum="{Binding DurationMs}" Value="{Binding PositionMs, Mode=OneWay}" IsEnabled="{Binding CanSeek}"
-                                    AutomationProperties.Name="播放進度"
-                                    PreviewMouseLeftButtonDown="SeekBar_PreviewMouseDown" PreviewMouseLeftButtonUp="SeekBar_PreviewMouseUp"
-                                    LostMouseCapture="SeekBar_LostMouseCapture" />
+                                    AutomationProperties.Name="播放進度" SmallChange="5000" LargeChange="15000" />
                             <TextBlock Grid.Column="2" Text="{Binding DurationText}" Style="{StaticResource Text.Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                         </Grid>
 
@@ -159,6 +170,7 @@
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <ToggleButton x:Name="VolumeToggle" Style="{StaticResource IconButton}" Content="&#xE767;" Visibility="{Binding HasVolume, Converter={StaticResource Visible}}"
+                                              IsHitTestVisible="{Binding IsOpen, ElementName=VolumePopup, Converter={StaticResource Not}}"
                                               ToolTip="音量" AutomationProperties.Name="音量" />
                                 <Button Style="{StaticResource IconButton}" Content="&#xE8AF;" Command="{Binding OpenDevicesCommand}"
                                         Visibility="{Binding IsConnect, Converter={StaticResource Visible}}"
@@ -167,14 +179,13 @@
                         </Grid>
 
                         <!-- Volume popup -->
-                        <Popup IsOpen="{Binding IsChecked, ElementName=VolumeToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=VolumeToggle}"
+                        <Popup x:Name="VolumePopup" IsOpen="{Binding IsChecked, ElementName=VolumeToggle}" StaysOpen="False" PlacementTarget="{Binding ElementName=VolumeToggle}"
                                Placement="Top" AllowsTransparency="True" PopupAnimation="Fade" Closed="VolumePopup_Closed">
                             <Border Background="{DynamicResource Brush.Menu}" BorderBrush="{DynamicResource Brush.Stroke}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="6">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE767;" Style="{StaticResource Text.Icon}" Foreground="{DynamicResource Brush.Text2}" />
-                                    <Slider Width="140" Margin="10,0" Style="{StaticResource GlassSlider}" Minimum="0" Maximum="100"
-                                            Value="{Binding Volume, Mode=OneWay}" ValueChanged="Volume_ValueChanged" AutomationProperties.Name="音量"
-                                            PreviewMouseLeftButtonDown="Volume_UserInput" PreviewKeyDown="Volume_UserInput" PreviewMouseWheel="Volume_UserInput" />
+                                    <Slider x:Name="VolumeSlider" Width="140" Margin="10,0" Style="{StaticResource GlassSlider}" Minimum="0" Maximum="100"
+                                            Value="{Binding Volume, Mode=OneWay}" ValueChanged="Volume_ValueChanged" AutomationProperties.Name="音量" SmallChange="5" LargeChange="10" />
                                     <TextBlock Text="{Binding Volume, StringFormat={}{0:0}}" Style="{StaticResource Text.Caption}" Width="22" />
                                 </StackPanel>
                             </Border>
@@ -373,10 +384,18 @@
                                         <ColumnDefinition Width="104" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text2}" VerticalAlignment="Center" />
-                                    <c:Meter Grid.Column="1" Height="5" VerticalAlignment="Center" Value="{Binding UsedPercent}"
-                                             Fill="{Binding UsedPercent, Converter={StaticResource UsageBrush}, ConverterParameter=Brush.Disk}" Track="{DynamicResource Brush.Track}" />
+                                    <c:Meter x:Name="Bar" Grid.Column="1" Height="5" VerticalAlignment="Center" Value="{Binding UsedPercent}"
+                                             Fill="{DynamicResource Brush.Disk}" Track="{DynamicResource Brush.Track}" />
                                     <TextBlock Grid.Column="2" Text="{Binding Text}" Style="{StaticResource Text.Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                 </Grid>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                        <Setter TargetName="Bar" Property="Fill" Value="{DynamicResource Brush.Warn}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Level}" Value="Danger">
+                                        <Setter TargetName="Bar" Property="Fill" Value="{DynamicResource Brush.Danger}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

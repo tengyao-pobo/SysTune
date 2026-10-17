@@ -58,7 +58,7 @@ public sealed class SettingsTests : IDisposable
         Assert.Equal(500, s.RefreshIntervalMs);
         Assert.Equal(ThemeMode.System, s.Theme);
         Assert.Equal(SpotifySettings.DefaultPort, s.Spotify.CallbackPort);
-        Assert.Equal(560, s.Expanded.Width);
+        Assert.Equal(AppSettings.ExpandedBaseWidth * AppSettings.MaxScale, s.Expanded.Width);
         Assert.Equal(460, s.Compact.Width);
         Assert.Equal("http://127.0.0.1:47821/callback", s.Spotify.RedirectUri);
     }

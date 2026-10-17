@@ -233,7 +233,7 @@ internal sealed class SystemMonitor : IDisposable
         var network = TryGet("network", () => SampleNetwork(now)) ?? new NetworkSnapshot(false, null, 0, 0);
 
         // ---- Power (every 10 s) ----
-        if (_tick % Math.Max(1, 10_000 / _intervalMs) == 1 || _tick == 1)
+        if (_tick % Math.Max(1, 10_000 / _intervalMs) == 0 || _tick == 1)
         {
             _power = TryGet("power", SamplePower);
         }
@@ -434,13 +434,17 @@ internal sealed class SystemMonitor : IDisposable
         NetworkChange.NetworkAvailabilityChanged -= OnNetworkChanged;
         _cts?.Cancel();
         _resume.Set();
+        var stopped = true;
         try
         {
-            _loop?.Wait(TimeSpan.FromSeconds(2));
+            stopped = _loop?.Wait(TimeSpan.FromSeconds(2)) ?? true;
         }
         catch (AggregateException)
         {
         }
+        // If a sample is still running (e.g. a slow sensor call), don't free native handles under it;
+        // the process is exiting and the OS reclaims them.
+        if (!stopped) return;
         _mainQuery?.Dispose();
         _gpuQuery?.Dispose();
         _thermalQuery?.Dispose();

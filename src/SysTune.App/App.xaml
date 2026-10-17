@@ -10,7 +10,7 @@
                 <ResourceDictionary Source="Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <c:BoolToVisibility x:Key="Visible" />
-            <c:UsageToBrush x:Key="UsageBrush" />
+            <c:InverseBool x:Key="Not" />
             <c:EnumEquals x:Key="EnumEquals" />
         </ResourceDictionary>
     </Application.Resources>

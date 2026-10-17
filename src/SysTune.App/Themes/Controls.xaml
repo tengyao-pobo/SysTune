@@ -402,7 +402,7 @@
         </Setter>
     </Style>
 
-    <Style TargetType="Separator">
+    <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Separator">

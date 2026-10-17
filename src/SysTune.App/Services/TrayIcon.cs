@@ -24,6 +24,7 @@ internal sealed class TrayIcon : IDisposable
         _menuFactory = menuFactory;
         _icon = new Forms.NotifyIcon { Text = "SysTune", Visible = false };
         _icon.MouseUp += OnMouseUp;
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
         UpdateIcon();
         _icon.Visible = true;
     }
@@ -67,12 +68,19 @@ internal sealed class TrayIcon : IDisposable
         {
             var menu = _menuFactory();
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
-            // The menu only closes on outside clicks if our process owns the foreground window.
-            var hwnd = new WindowInteropHelper(_owner).EnsureHandle();
-            Native.SetForegroundWindow(hwnd);
+            // The menu only closes on outside clicks / takes keyboard input if its own popup window is foreground.
+            // (The widget may be hidden, so its HWND can't be used for this.)
+            menu.Opened += (_, _) =>
+            {
+                if (PresentationSource.FromVisual(menu) is HwndSource source) Native.SetForegroundWindow(source.Handle);
+            };
             menu.IsOpen = true;
         }
     }
+
+    // The taskbar theme can change independently of the app theme.
+    private void OnUserPreferenceChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+        => _owner.Dispatcher.BeginInvoke(UpdateIcon);
 
     private static bool SystemUsesLightTaskbar()
     {
@@ -89,6 +97,7 @@ internal sealed class TrayIcon : IDisposable
 
     public void Dispose()
     {
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
         _icon.Visible = false;
         _icon.Dispose();
         _current?.Dispose();

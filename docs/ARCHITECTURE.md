@@ -67,7 +67,7 @@ DispatcherTimer 500ms (僅可見時) ──► 進度條外插（不打 API）
 - 每個硬體資料來源各自 try/catch：失敗只記錄一次，該欄位顯示「—」或隱藏，不影響其他來源。
 - Spotify 任何失敗都轉成狀態（`Offline`/`RateLimited`/`Error`/`Disconnected`），不會丟到 UI；Refresh Token 被撤銷時自動清除並提示重新連結。
 - 設定檔原子寫入（暫存檔 + 取代）、損毀時備份為 `.corrupt` 並使用預設值。
-- 視窗位置以 Win32 `WINDOWPLACEMENT`（實體像素）保存，還原前用 `MonitorFromRect` 確認仍在某個螢幕上，避免拔掉螢幕後小工具「消失」。
+- 視窗位置以實體螢幕像素（`GetWindowRect`/`SetWindowPos`）保存，跨螢幕、工作列位置與 DPI 都不受影響；還原前用 `MonitorFromRect` 確認仍在某個螢幕上，避免拔掉螢幕後小工具「消失」。
 - 全域例外處理：UI 例外記錄後繼續執行（連續 20 次才放棄）、背景 Task 例外被觀察並記錄。
 - 單一執行個體：第二次啟動只會喚醒第一個執行個體。
 - 記錄檔：`%LOCALAPPDATA%\SysTune\logs\systune.log`，1 MB 滾動保留 3 份，絕不寫入 Token。

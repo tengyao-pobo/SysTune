@@ -117,6 +117,16 @@ internal sealed class HardwareSensors : IDisposable
 
     public void Dispose()
     {
-        lock (_gate) CloseComputer();
+        // Computer.Open() can be slow on some systems; never block app exit on it.
+        if (!_gate.TryEnter(TimeSpan.FromSeconds(1))) return;
+        try
+        {
+            CloseComputer();
+            _failed = true;
+        }
+        finally
+        {
+            _gate.Exit();
+        }
     }
 }

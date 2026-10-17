@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Media;
 
 namespace SysTune.App.Controls;
 
@@ -18,17 +17,12 @@ public sealed class BoolToVisibility : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
-/// <summary>Usage percentage → brush: normal accent, warning ≥ 85 %, danger ≥ 95 %.</summary>
-public sealed class UsageToBrush : IValueConverter
+/// <summary>Boolean negation.</summary>
+public sealed class InverseBool : IValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        var v = value is double d ? d : 0;
-        var key = v >= 95 ? "Brush.Danger" : v >= 85 ? "Brush.Warn" : parameter as string ?? "Brush.Disk";
-        return Application.Current.TryFindResource(key) as Brush;
-    }
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
 }
 
 /// <summary>Compares an enum value with the converter parameter (for segmented RadioButtons).</summary>

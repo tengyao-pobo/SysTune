@@ -26,6 +26,13 @@ public sealed class AppSettings
 {
     public const int CurrentVersion = 1;
 
+    public const double ExpandedBaseWidth = 340;
+    public const double CompactBaseWidth = 460;
+
+    /// <summary>The widget scales (zooms) between these factors of its base width.</summary>
+    public const double MinScale = 0.85;
+    public const double MaxScale = 1.6;
+
     public int Version { get; set; } = CurrentVersion;
 
     public ThemeMode Theme { get; set; } = ThemeMode.System;
@@ -83,8 +90,8 @@ public sealed class AppSettings
         Spotify.Normalize();
         Expanded ??= new WindowState();
         Compact ??= new WindowState();
-        Expanded.Width = ClampWidth(Expanded.Width, 300, 560, 340);
-        Compact.Width = ClampWidth(Compact.Width, 380, 760, 460);
+        Expanded.Width = ClampWidth(Expanded.Width, ExpandedBaseWidth * MinScale, ExpandedBaseWidth * MaxScale, ExpandedBaseWidth);
+        Compact.Width = ClampWidth(Compact.Width, CompactBaseWidth * MinScale, CompactBaseWidth * MaxScale, CompactBaseWidth);
         Version = CurrentVersion;
     }
 

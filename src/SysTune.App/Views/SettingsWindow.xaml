@@ -125,7 +125,18 @@
                         <StackPanel>
                             <Grid>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Ellipse Width="8" Height="8" Fill="{DynamicResource Brush.Text3}" x:Name="StatusDot" />
+                                    <Ellipse Width="8" Height="8">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{DynamicResource Brush.Text3}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSpotifyConnected}" Value="True">
+                                                        <Setter Property="Fill" Value="{DynamicResource Brush.Spotify}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
                                     <TextBlock Text="{Binding SpotifyStatusText}" FontSize="12.5" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

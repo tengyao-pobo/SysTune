@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using SysTune.App.Services;
 using SysTune.App.ViewModels;
@@ -12,8 +13,8 @@ namespace SysTune.App.Views;
 
 public partial class MainWindow : Window
 {
-    private const double ExpandedBaseWidth = 340;
-    private const double CompactBaseWidth = 460;
+    private const double ExpandedBaseWidth = AppSettings.ExpandedBaseWidth;
+    private const double CompactBaseWidth = AppSettings.CompactBaseWidth;
     private readonly AppController _app;
     private readonly DispatcherTimer _saveDebounce;
     private bool _initialized;
@@ -38,6 +39,33 @@ public partial class MainWindow : Window
         };
         Root.MouseLeftButtonDown += OnRootMouseDown;
         PreviewKeyDown += OnKeyDown;
+
+        // Slider handles mouse-down itself (IsMoveToPointEnabled), so listen to handled events too.
+        SeekBar.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler((_, _) => BeginSeek()), handledEventsToo: true);
+        SeekBar.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler(async (_, _) => await CommitSeekAsync()), handledEventsToo: true);
+        SeekBar.AddHandler(LostMouseCaptureEvent, new MouseEventHandler(async (_, _) =>
+        {
+            if (!SeekBar.IsMouseCaptureWithin) await CommitSeekAsync();
+        }), handledEventsToo: true);
+        SeekBar.AddHandler(PreviewKeyDownEvent, new KeyEventHandler((_, e) =>
+        {
+            if (IsRangeKey(e.Key)) BeginSeek();
+        }), handledEventsToo: true);
+        SeekBar.AddHandler(KeyUpEvent, new KeyEventHandler(async (_, e) =>
+        {
+            if (IsRangeKey(e.Key)) await CommitSeekAsync();
+        }), handledEventsToo: true);
+
+        VolumeSlider.AddHandler(PreviewMouseLeftButtonDownEvent, new MouseButtonEventHandler((_, _) => _volumeByUser = true), handledEventsToo: true);
+        VolumeSlider.AddHandler(PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler((_, _) => _volumeByUser = false), handledEventsToo: true);
+        VolumeSlider.AddHandler(PreviewKeyDownEvent, new KeyEventHandler((_, e) => _volumeByUser = IsRangeKey(e.Key)), handledEventsToo: true);
+        VolumeSlider.AddHandler(KeyUpEvent, new KeyEventHandler((_, _) => _volumeByUser = false), handledEventsToo: true);
+        VolumeSlider.PreviewMouseWheel += (_, e) =>
+        {
+            VolumeSlider.Value = Math.Clamp(VolumeSlider.Value + (e.Delta > 0 ? 5 : -5), 0, 100);
+            Vm?.Player.SetVolume(VolumeSlider.Value);
+            e.Handled = true;
+        };
         DpiChanged += (_, _) => _app.ApplyGlass();
     }
 
@@ -108,6 +136,8 @@ public partial class MainWindow : Window
     private void OnRootMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (_app.Settings.LockPosition || e.ButtonState != MouseButtonState.Pressed) return;
+        // Clicks inside popups (volume, devices) bubble through the logical tree; don't move the window for them.
+        if (e.OriginalSource is not Visual source || PresentationSource.FromVisual(source) != PresentationSource.FromVisual(this)) return;
         try
         {
             DragMove();
@@ -121,8 +151,8 @@ public partial class MainWindow : Window
     private void ResizeGrip_DragDelta(object sender, DragDeltaEventArgs e)
     {
         var baseWidth = IsCompactMode ? CompactBaseWidth : ExpandedBaseWidth;
-        var min = baseWidth * 0.85;
-        var max = baseWidth * 1.6;
+        var min = baseWidth * AppSettings.MinScale;
+        var max = baseWidth * AppSettings.MaxScale;
         // Diagonal drag: use the larger of the two deltas so the grip feels natural.
         var delta = Math.Abs(e.HorizontalChange) >= Math.Abs(e.VerticalChange) ? e.HorizontalChange : e.VerticalChange * (baseWidth / ActualHeight);
         var width = Math.Clamp(Width + delta, min, max);
@@ -132,46 +162,46 @@ public partial class MainWindow : Window
 
     private void ResizeGrip_DragCompleted(object sender, DragCompletedEventArgs e) => SavePlacement();
 
-    private async void OnKeyDown(object sender, KeyEventArgs e)
+    private void OnKeyDown(object sender, KeyEventArgs e)
     {
         if (Vm is not { } vm || e.OriginalSource is TextBox) return;
+        var ctrl = Keyboard.Modifiers == ModifierKeys.Control;
+        // Mark handled synchronously (before any await) so the key doesn't also reach the focused control.
         switch (e.Key)
         {
             case Key.Escape:
+                e.Handled = true;
                 _app.HideWidget();
-                e.Handled = true;
                 break;
-            case Key.Space when e.OriginalSource is not ButtonBase:
-                if (vm.Player.PlayPauseCommand.CanExecute(null)) await vm.Player.PlayPauseCommand.ExecuteAsync(null);
+            case Key.Space when e.OriginalSource is not ButtonBase and not Slider:
+            case Key.MediaPlayPause:
                 e.Handled = true;
+                _ = vm.Player.PlayPauseCommand.ExecuteAsync(null);
                 break;
-            case Key.MediaNextTrack or Key.Right when Keyboard.Modifiers == ModifierKeys.Control:
-                await vm.Player.NextCommand.ExecuteAsync(null);
+            case Key.MediaNextTrack:
+            case Key.Right when ctrl:
                 e.Handled = true;
+                _ = vm.Player.NextCommand.ExecuteAsync(null);
                 break;
-            case Key.MediaPreviousTrack or Key.Left when Keyboard.Modifiers == ModifierKeys.Control:
-                await vm.Player.PreviousCommand.ExecuteAsync(null);
+            case Key.MediaPreviousTrack:
+            case Key.Left when ctrl:
                 e.Handled = true;
+                _ = vm.Player.PreviousCommand.ExecuteAsync(null);
                 break;
-            case Key.OemComma when Keyboard.Modifiers == ModifierKeys.Control:
+            case Key.OemComma when ctrl:
+                e.Handled = true;
                 _app.OpenSettings();
-                e.Handled = true;
                 break;
         }
     }
 
     // ---------------- Seek / volume ----------------
 
-    private void SeekBar_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (Vm is { } vm) vm.Player.IsSeeking = true;
-    }
+    private static bool IsRangeKey(Key key) => key is Key.Left or Key.Right or Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End;
 
-    private async void SeekBar_PreviewMouseUp(object sender, MouseButtonEventArgs e) => await CommitSeekAsync();
-
-    private async void SeekBar_LostMouseCapture(object sender, MouseEventArgs e)
+    private void BeginSeek()
     {
-        if (Vm?.Player.IsSeeking == true) await CommitSeekAsync();
+        if (Vm is { } vm && SeekBar.IsEnabled) vm.Player.IsSeeking = true;
     }
 
     private async Task CommitSeekAsync()
@@ -184,11 +214,9 @@ public partial class MainWindow : Window
     // Only user-initiated changes are sent to Spotify; poll-driven updates must not echo back.
     private bool _volumeByUser;
 
-    private void Volume_UserInput(object sender, RoutedEventArgs e) => _volumeByUser = true;
-
     private void Volume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (_volumeByUser) Vm?.Player.SetVolume(e.NewValue);
+        if (_volumeByUser || VolumeSlider.IsMouseCaptureWithin) Vm?.Player.SetVolume(e.NewValue);
     }
 
     private void VolumePopup_Closed(object? sender, EventArgs e)

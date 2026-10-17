@@ -62,31 +62,21 @@ internal static partial class Native
         public int Bottom;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct WINDOWPLACEMENT
-    {
-        public int length;
-        public int flags;
-        public int showCmd;
-        public POINT ptMinPosition;
-        public POINT ptMaxPosition;
-        public RECT rcNormalPosition;
-    }
-
-    internal const int SW_SHOWNORMAL = 1;
-    internal const int SW_SHOWNOACTIVATE = 4;
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool GetWindowPlacement(nint hWnd, ref WINDOWPLACEMENT placement);
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool SetWindowPlacement(nint hWnd, ref WINDOWPLACEMENT placement);
-
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool SetForegroundWindow(nint hWnd);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetWindowRect(nint hWnd, out RECT rect);
+
+    internal const uint SWP_NOSIZE = 0x0001;
+    internal const uint SWP_NOZORDER = 0x0004;
+    internal const uint SWP_NOACTIVATE = 0x0010;
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
 
     internal const int GWL_EXSTYLE = -20;
     internal const long WS_EX_TOOLWINDOW = 0x00000080L;

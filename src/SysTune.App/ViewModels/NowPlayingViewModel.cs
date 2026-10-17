@@ -31,6 +31,7 @@ public sealed partial class NowPlayingViewModel : ObservableObject
     private string? _artKey;
     private NowPlaying? _current;
     private int _pendingVolume = -1;
+    private TimeSpan _userVolumeAt = TimeSpan.MinValue;
 
     internal NowPlayingViewModel(SpotifyPlaybackService spotify, LocalMediaSession local, ArtworkLoader artwork, IClock clock, ILog log, Func<AppSettings> settings, Action openSpotifySettings)
     {
@@ -209,14 +210,16 @@ public sealed partial class NowPlayingViewModel : ObservableObject
         RepeatActive = np.Repeat != RepeatMode.Off;
         RepeatGlyph = np.Repeat == RepeatMode.Track ? "" : "";
         HasVolume = np.VolumePercent is not null;
-        if (np.VolumePercent is { } vol && !_volumeDebounce.IsEnabled) Volume = vol;
+        // Spotify reports the old volume for a moment after a change; don't snap the slider back.
+        if (np.VolumePercent is { } vol && !_volumeDebounce.IsEnabled && _clock.Elapsed - _userVolumeAt > TimeSpan.FromSeconds(3)) Volume = vol;
         Tick();
         LoadArtwork(np);
     }
 
     private void LoadArtwork(NowPlaying np)
     {
-        var key = np.Source == NowPlayingSource.LocalSession ? np.ItemKey : np.ArtworkUrl;
+        // Local thumbnails can arrive in a later SMTC event than the title, so include their size in the key.
+        var key = np.Source == NowPlayingSource.LocalSession ? np.ItemKey + "#" + (_local.Artwork?.Length ?? 0) : np.ArtworkUrl;
         if (key == _artKey) return;
         _artKey = key;
         _artCts?.Cancel();
@@ -342,6 +345,8 @@ public sealed partial class NowPlayingViewModel : ObservableObject
     public void SetVolume(double percent)
     {
         _pendingVolume = (int)Math.Round(Math.Clamp(percent, 0, 100));
+        _userVolumeAt = _clock.Elapsed;
+        Volume = _pendingVolume;
         _volumeDebounce.Stop();
         _volumeDebounce.Start();
     }
