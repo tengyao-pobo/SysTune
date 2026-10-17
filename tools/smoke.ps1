@@ -63,13 +63,27 @@ $f.Text = 'Ordinary app window'; $f.BackColor = [Drawing.Color]::DarkOrange
 $f.Add_Shown({ $f.Activate() })
 [Windows.Forms.Application]::Run($f)
 '@
-    Start-Sleep -Seconds 6
+    # Wait until the cover window really exists (pwsh + WinForms start-up can take several seconds).
+    $deadline = (Get-Date).AddSeconds(45)
+    do {
+        Start-Sleep -Milliseconds 500
+        $ready = Get-Process -Id $cover.Id -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -eq 'Ordinary app window' }
+    } until ($ready -or (Get-Date) -gt $deadline)
+    if (-not $ready) { throw 'Cover window did not appear' }
+    Start-Sleep -Seconds 2
     Save-Screenshot (Join-Path $OutDir "$Variant-1-covered.png")
-    (New-Object -ComObject Shell.Application).ToggleDesktop()
+
+    # Real Win+D key press.
+    Add-Type -Namespace Smoke -Name Keys -MemberDefinition '[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);'
+    [Smoke.Keys]::keybd_event(0x5B, 0, 0, [UIntPtr]::Zero)   # LWin down
+    [Smoke.Keys]::keybd_event(0x44, 0, 0, [UIntPtr]::Zero)   # D down
+    [Smoke.Keys]::keybd_event(0x44, 0, 2, [UIntPtr]::Zero)   # D up
+    [Smoke.Keys]::keybd_event(0x5B, 0, 2, [UIntPtr]::Zero)   # LWin up
     Start-Sleep -Seconds 3
     Save-Screenshot (Join-Path $OutDir "$Variant-2-show-desktop.png")
-    # Leave Show desktop again and verify the widget returns under the app window.
-    (New-Object -ComObject Shell.Application).ToggleDesktop()
+    # Leave Show desktop again (Win+D) and verify the widget returns under the app window.
+    [Smoke.Keys]::keybd_event(0x5B, 0, 0, [UIntPtr]::Zero); [Smoke.Keys]::keybd_event(0x44, 0, 0, [UIntPtr]::Zero)
+    [Smoke.Keys]::keybd_event(0x44, 0, 2, [UIntPtr]::Zero); [Smoke.Keys]::keybd_event(0x5B, 0, 2, [UIntPtr]::Zero)
     Start-Sleep -Seconds 3
     Save-Screenshot (Join-Path $OutDir "$Variant-3-restored.png")
     Stop-Process -Id $cover.Id -Force -ErrorAction SilentlyContinue
