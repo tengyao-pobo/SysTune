@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore SysTune.slnx
+
+      - name: Build (Release, warnings as errors)
+        run: dotnet build SysTune.slnx -c Release --no-restore -warnaserror
+
+      - name: Unit tests
+        run: dotnet test tests/SysTune.Core.Tests -c Release --no-build --logger "trx;LogFileName=unit-tests.trx" --results-directory artifacts/test-results --collect "XPlat Code Coverage"
+
+      - name: Publish win-x64 (self-contained)
+        run: dotnet publish src/SysTune.App -c Release -r win-x64 --self-contained true -o artifacts/publish/win-x64
+
+      - name: Smoke test – dark / expanded
+        shell: pwsh
+        run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant dark-expanded -Theme Dark -Mode Expanded
+
+      - name: Smoke test – light / expanded + settings window
+        shell: pwsh
+        run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant light-settings -Theme Light -Mode Expanded -ShowSettings
+
+      - name: Smoke test – dark / compact
+        shell: pwsh
+        run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant dark-compact -Theme Dark -Mode Compact
+
+      - name: Upload test results and smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-results
+          path: |
+            artifacts/test-results
+            artifacts/smoke

@@ -61,14 +61,22 @@ public sealed class SpotifyConnection : IDisposable
         var verifier = Pkce.CreateVerifier();
         var state = Pkce.CreateState();
 
-        LoopbackCallbackServer server;
-        try
+        LoopbackCallbackServer? server = null;
+        for (var attempt = 0; server is null; attempt++)
         {
-            server = new LoopbackCallbackServer(callbackPort);
-        }
-        catch (System.Net.Sockets.SocketException ex)
-        {
-            throw new SpotifyException($"無法監聽 127.0.0.1:{callbackPort}（連接埠可能被占用），請在設定中更換回呼連接埠", ex) { Reason = "port_in_use" };
+            try
+            {
+                server = new LoopbackCallbackServer(callbackPort);
+            }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                // A just-cancelled previous attempt may still be releasing the port.
+                if (attempt >= 4)
+                {
+                    throw new SpotifyException($"無法監聽 127.0.0.1:{callbackPort}（連接埠可能被占用），請在設定中更換回呼連接埠", ex) { Reason = "port_in_use" };
+                }
+                await Task.Delay(250, ct).ConfigureAwait(false);
+            }
         }
 
         using (server)

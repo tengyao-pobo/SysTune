@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version
+        id: v
+        shell: pwsh
+        run: |
+          $v = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/SysTune.Core.Tests -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          foreach ($rid in 'win-x64','win-arm64') {
+            dotnet publish src/SysTune.App -c Release -r $rid --self-contained true -p:Version=${{ steps.v.outputs.version }} -o artifacts/publish/$rid
+            if ($LASTEXITCODE -ne 0) { throw "publish $rid failed" }
+          }
+
+      - name: Smoke test (x64 build)
+        shell: pwsh
+        run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant release-x64
+
+      - name: Portable zips
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/dist | Out-Null
+          foreach ($rid in 'win-x64','win-arm64') {
+            Compress-Archive -Path artifacts/publish/$rid/* -DestinationPath artifacts/dist/SysTune-${{ steps.v.outputs.version }}-$rid-portable.zip -CompressionLevel Optimal
+          }
+
+      - name: Installers (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          # Traditional Chinese wizard text (unofficial translation maintained in the Inno Setup repo).
+          $lang = "${env:ProgramFiles(x86)}\Inno Setup 6\Languages\ChineseTraditional.isl"
+          if (-not (Test-Path $lang)) {
+            try { Invoke-WebRequest https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseTraditional.isl -OutFile installer/ChineseTraditional.isl } catch { Write-Warning "zh-TW installer language unavailable: $_" }
+          } else { Copy-Item $lang installer/ChineseTraditional.isl }
+          foreach ($arch in 'x64','arm64') {
+            & $iscc /DAppVersion=${{ steps.v.outputs.version }} /DArch=$arch /DSourceDir=..\artifacts\publish\win-$arch /O..\artifacts\dist installer\SysTune.iss
+            if ($LASTEXITCODE -ne 0) { throw "ISCC $arch failed" }
+          }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem artifacts/dist -File | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name } | Set-Content artifacts/dist/SHA256SUMS.txt
+          Get-Content artifacts/dist/SHA256SUMS.txt
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ steps.v.outputs.version }}"
+          $notes = "See CHANGELOG.md for details. Builds are not code-signed; Windows SmartScreen may warn on first launch."
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release upload $tag (Get-ChildItem artifacts/dist -File).FullName --clobber }
+          else { gh release create $tag (Get-ChildItem artifacts/dist -File).FullName --title "SysTune $tag" --notes $notes --target ${{ github.sha }} }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-${{ steps.v.outputs.version }}
+          path: |
+            artifacts/dist
+            artifacts/smoke

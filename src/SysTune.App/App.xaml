@@ -1,0 +1,17 @@
+<Application x:Class="SysTune.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:SysTune.App.Controls"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Dark.xaml" />
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <c:BoolToVisibility x:Key="Visible" />
+            <c:UsageToBrush x:Key="UsageBrush" />
+            <c:EnumEquals x:Key="EnumEquals" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

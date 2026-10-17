@@ -42,6 +42,7 @@ public sealed class SpotifyPlaybackService : IAsyncDisposable
     private readonly Backoff _backoff = new(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60));
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
+    private CancellationTokenSource? _connectCts;
     private volatile bool _active = true;
     private volatile bool _connecting;
     private SpotifyServiceState _state = new(SpotifyStatus.Disconnected, null, null);
@@ -85,21 +86,42 @@ public sealed class SpotifyPlaybackService : IAsyncDisposable
 
     public async Task ConnectAsync(int port, Action<Uri> openBrowser, CancellationToken ct)
     {
+        // A new attempt supersedes one still waiting for the browser (frees the loopback port).
+        var previous = Interlocked.Exchange(ref _connectCts, null);
+        if (previous is not null)
+        {
+            try
+            {
+                await previous.CancelAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // previous attempt already finished
+            }
+        }
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
+        _connectCts = cts;
+        ct = cts.Token;
         _connecting = true;
         Publish(new SpotifyServiceState(SpotifyStatus.Connecting, null, "請在瀏覽器中完成 Spotify 授權…"));
         try
         {
             await _connection.ConnectAsync(port, openBrowser, TimeSpan.FromMinutes(5), ct).ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            throw; // superseded by a newer attempt or app shutdown; that path publishes its own state
+        }
         catch (Exception ex)
         {
             Publish(new SpotifyServiceState(BaseStatus(), null, ex is SpotifyException ? ex.Message : "連結 Spotify 時發生錯誤"));
-            if (ex is not SpotifyException and not OperationCanceledException) _log.Error("Spotify connect failed", ex);
+            if (ex is not SpotifyException) _log.Error("Spotify connect failed", ex);
             throw;
         }
         finally
         {
-            _connecting = false;
+            Interlocked.CompareExchange(ref _connectCts, null, cts);
+            if (_connectCts is null) _connecting = false;
             _wake.Set();
         }
     }

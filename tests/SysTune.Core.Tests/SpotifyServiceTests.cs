@@ -122,3 +122,33 @@ public class SpotifyServiceTests
         Assert.Null(states.Last().NowPlaying);
     }
 }
+
+public class SpotifyConnectSupersedeTests
+{
+    [Fact]
+    public async Task SecondConnect_CancelsFirstAndReusesPort()
+    {
+        int port;
+        using (var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0))
+        {
+            probe.Start();
+            port = ((System.Net.IPEndPoint)probe.LocalEndpoint).Port;
+        }
+        var auth = new FakeHandler().Enqueue(HttpStatusCode.OK, """{"access_token":"AT","expires_in":3600,"refresh_token":"RT"}""");
+        var conn = new SpotifyConnection(new SpotifyAuthClient(new HttpClient(auth)), new MemoryTokenStore()) { ClientId = "cid" };
+        await using var svc = new SpotifyPlaybackService(conn, new SpotifyApiClient(new HttpClient(new FakeHandler()), conn));
+        using var browser = new HttpClient(new SocketsHttpHandler { UseProxy = false });
+
+        var first = svc.ConnectAsync(port, _ => { }, CancellationToken.None);
+        await Task.Delay(100);
+        var second = svc.ConnectAsync(port, uri =>
+        {
+            var state = System.Web.HttpUtility.ParseQueryString(uri.Query)["state"];
+            _ = browser.GetStringAsync($"http://127.0.0.1:{port}/callback?code=C&state={Uri.EscapeDataString(state!)}");
+        }, CancellationToken.None);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
+        await second;
+        Assert.True(conn.IsConnected);
+    }
+}

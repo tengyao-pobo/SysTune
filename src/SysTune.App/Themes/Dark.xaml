@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Surfaces -->
+    <Color x:Key="Color.Tint">#FF14161B</Color>
+    <SolidColorBrush x:Key="Brush.Tint" Color="{StaticResource Color.Tint}" />
+    <SolidColorBrush x:Key="Brush.Solid" Color="#FF1B1E24" />
+    <LinearGradientBrush x:Key="Brush.Sheen" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#14FFFFFF" Offset="0" />
+        <GradientStop Color="#05FFFFFF" Offset="0.35" />
+        <GradientStop Color="#00FFFFFF" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Brush.Stroke" Color="#2EFFFFFF" />
+    <SolidColorBrush x:Key="Brush.Divider" Color="#17FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Tile" Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="Brush.TileStroke" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="Brush.Track" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="Brush.Hover" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="Brush.Pressed" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="Brush.Menu" Color="#F2202329" />
+    <SolidColorBrush x:Key="Brush.Input" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="Brush.InputStroke" Color="#24FFFFFF" />
+    <Color x:Key="Color.Shadow">#99000000</Color>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="Brush.Text1" Color="#FFF3F5F8" />
+    <SolidColorBrush x:Key="Brush.Text2" Color="#C2D4D8E0" />
+    <SolidColorBrush x:Key="Brush.Text3" Color="#80C9CED8" />
+    <SolidColorBrush x:Key="Brush.OnAccent" Color="#FF0B0D10" />
+
+    <!-- Accents -->
+    <SolidColorBrush x:Key="Brush.Cpu" Color="#FF5AC8FA" />
+    <SolidColorBrush x:Key="Brush.Gpu" Color="#FFB197FC" />
+    <SolidColorBrush x:Key="Brush.Mem" Color="#FF4ADE9A" />
+    <SolidColorBrush x:Key="Brush.Down" Color="#FF60A5FA" />
+    <SolidColorBrush x:Key="Brush.Up" Color="#FFF472B6" />
+    <SolidColorBrush x:Key="Brush.Disk" Color="#FFFBBF24" />
+    <SolidColorBrush x:Key="Brush.Spotify" Color="#FF1ED760" />
+    <SolidColorBrush x:Key="Brush.Warn" Color="#FFFBBF24" />
+    <SolidColorBrush x:Key="Brush.Danger" Color="#FFF87171" />
+    <SolidColorBrush x:Key="Brush.PlayButton" Color="#FFF3F5F8" />
+</ResourceDictionary>
