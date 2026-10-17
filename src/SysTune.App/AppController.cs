@@ -83,6 +83,9 @@ internal sealed class AppController : IDisposable
     /// <summary>Latest snapshot (used by the CI smoke test to verify real data).</summary>
     public SystemSnapshot? LastSnapshot => Volatile.Read(ref _lastSnapshot);
 
+    /// <summary>Average sampling cost per data source (ms).</summary>
+    public Dictionary<string, double> MonitorTimings => _monitor.GetTimings();
+
     private static HttpClient CreateHttpClient()
     {
         var handler = new SocketsHttpHandler

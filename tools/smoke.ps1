@@ -10,7 +10,7 @@ param(
     [string] $Theme = 'Dark',
     [string] $Mode = 'Expanded',
     [switch] $ShowSettings,
-    [int] $Seconds = 14
+    [int] $Seconds = 40
 )
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force $OutDir | Out-Null
@@ -28,14 +28,14 @@ Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $logDir 'smoke-resul
 $appArgs = @('--smoke-test', "$Seconds")
 if ($ShowSettings) { $appArgs += '--show-settings' }
 $p = Start-Process -FilePath $Exe -ArgumentList $appArgs -PassThru
-Start-Sleep -Seconds ([Math]::Max(6, $Seconds - 5))
+Start-Sleep -Seconds ([Math]::Max(6, $Seconds - 15))
 
 # Process metrics while running (real numbers for the test report).
 $proc = Get-Process -Id $p.Id -ErrorAction SilentlyContinue
 $metrics = $null
 if ($proc) {
     $cpu1 = $proc.TotalProcessorTime.TotalMilliseconds
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 10
     $proc.Refresh()
     $cpu2 = $proc.TotalProcessorTime.TotalMilliseconds
     $metrics = [ordered]@{
@@ -43,7 +43,9 @@ if ($proc) {
         privateMB = [Math]::Round($proc.PrivateMemorySize64 / 1MB, 1)
         threads = $proc.Threads.Count
         handles = $proc.HandleCount
-        cpuPercentOver3s = [Math]::Round(($cpu2 - $cpu1) / 3000 / [Environment]::ProcessorCount * 100, 2)
+        cpuPercentOfMachine = [Math]::Round(($cpu2 - $cpu1) / 10000 / [Environment]::ProcessorCount * 100, 2)
+        cpuPercentOfOneCore = [Math]::Round(($cpu2 - $cpu1) / 10000 * 100, 2)
+        measuredAfterSeconds = $Seconds - 15
     }
 }
 

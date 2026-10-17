@@ -18,6 +18,7 @@ internal sealed class SystemMonitor : IDisposable
     private readonly RateCalculator _netDown = new();
     private readonly RateCalculator _netUp = new();
     private readonly HashSet<string> _reportedFailures = [];
+    private readonly Dictionary<string, (long Ticks, int Count)> _timings = [];
     private readonly List<KeyValuePair<string, double>> _scratch = new(256);
     private readonly HardwareSensors _sensors;
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
@@ -188,6 +189,7 @@ internal sealed class SystemMonitor : IDisposable
 
         double? freq = null, diskActive = null;
         double diskRead = 0, diskWrite = 0;
+        var pdhStart = System.Diagnostics.Stopwatch.GetTimestamp();
         if (_mainQuery is not null && _mainQuery.Collect())
         {
             if (_cpuPerf?.Read() is { } perf && _cpuBaseMhz is { } baseMhz) freq = baseMhz * perf / 100.0;
@@ -195,17 +197,21 @@ internal sealed class SystemMonitor : IDisposable
             diskRead = _diskRead?.Read() ?? 0;
             diskWrite = _diskWrite?.Read() ?? 0;
         }
+        Record("pdh-main", pdhStart);
 
         // ---- Temperatures (every ~2 s) ----
         if (_tick % Math.Max(1, 2000 / _intervalMs) == 0)
         {
             Try("sensors", _sensors.Update);
-            if (_thermal is not null && _thermalQuery!.Collect() && _thermal.ReadArray(_scratch) && _scratch.Count > 0)
+            Try("thermal", () =>
             {
-                // Kelvin → Celsius; ignore implausible values reported by some firmware.
-                var c = _scratch.Max(k => k.Value) - 273.15;
-                _acpiTemp = c is > 5 and < 120 ? c : null;
-            }
+                if (_thermal is not null && _thermalQuery!.Collect() && _thermal.ReadArray(_scratch) && _scratch.Count > 0)
+                {
+                    // Kelvin → Celsius; ignore implausible values reported by some firmware.
+                    var c = _scratch.Max(k => k.Value) - 273.15;
+                    _acpiTemp = c is > 5 and < 120 ? c : null;
+                }
+            });
         }
         var cpuTemp = _sensors.CpuTemperatureC;
         var tempSource = cpuTemp is not null ? TemperatureSource.Sensor : _acpiTemp is not null ? TemperatureSource.AcpiThermalZone : TemperatureSource.None;
@@ -325,13 +331,7 @@ internal sealed class SystemMonitor : IDisposable
     {
         if (_interfacesDirty || _interfacesRefreshedAt is not { } ifAt || now - ifAt > TimeSpan.FromSeconds(30))
         {
-            _interfaces = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(n => n.OperationalStatus == OperationalStatus.Up
-                            && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
-                            && !n.Description.Contains("Virtual", StringComparison.OrdinalIgnoreCase)
-                            && !n.Description.Contains("Hyper-V", StringComparison.OrdinalIgnoreCase)
-                            && !n.Description.Contains("Pseudo", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
+            _interfaces = SelectInterfaces(NetworkInterface.GetAllNetworkInterfaces());
             _interfacesRefreshedAt = now;
             _interfacesDirty = false;
             _netDown.Reset();
@@ -348,8 +348,7 @@ internal sealed class SystemMonitor : IDisposable
                 var s = n.GetIPStatistics();
                 rx += (ulong)Math.Max(0, s.BytesReceived);
                 tx += (ulong)Math.Max(0, s.BytesSent);
-                var hasGateway = n.GetIPProperties().GatewayAddresses.Count > 0;
-                var score = (hasGateway ? long.MaxValue / 2 : 0) + s.BytesReceived / 2;
+                var score = s.BytesReceived;
                 if (score > best)
                 {
                     best = score;
@@ -363,6 +362,37 @@ internal sealed class SystemMonitor : IDisposable
         }
         var connected = NetworkInterface.GetIsNetworkAvailable() && _interfaces.Length > 0;
         return new NetworkSnapshot(connected, primary, _netDown.Update(rx, now), _netUp.Update(tx, now));
+    }
+
+    /// <summary>
+    /// Picks the interfaces whose traffic should be counted. Description-based filtering is unreliable
+    /// (VM NICs are "Hyper-V Network Adapter"; a Hyper-V host routes through "vEthernet"), so the rule is:
+    /// up, not loopback/tunnel, and carrying a default gateway. With an external virtual switch the
+    /// physical NIC has no IP configuration, so traffic is not counted twice. Falls back to all up
+    /// interfaces when none has a gateway (e.g. a local-only network).
+    /// </summary>
+    private static NetworkInterface[] SelectInterfaces(NetworkInterface[] all)
+    {
+        var up = all.Where(n => n.OperationalStatus == OperationalStatus.Up
+                                && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel))
+                    .ToArray();
+        var withGateway = up.Where(HasGateway).ToArray();
+        return withGateway.Length > 0 ? withGateway : up;
+    }
+
+    private static bool HasGateway(NetworkInterface n)
+    {
+        try
+        {
+            foreach (var g in n.GetIPProperties().GatewayAddresses)
+            {
+                if (!g.Address.Equals(System.Net.IPAddress.Any) && !g.Address.Equals(System.Net.IPAddress.IPv6Any)) return true;
+            }
+        }
+        catch (NetworkInformationException)
+        {
+        }
+        return false;
     }
 
     private static PowerSnapshot? SamplePower()
@@ -396,9 +426,11 @@ internal sealed class SystemMonitor : IDisposable
 
     private void Try(string name, Action action)
     {
+        var start = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             action();
+            Record(name, start);
         }
         catch (Exception ex)
         {
@@ -409,14 +441,36 @@ internal sealed class SystemMonitor : IDisposable
     private T? TryGet<T>(string name, Func<T> func)
         where T : class?
     {
+        var start = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
-            return func();
+            var result = func();
+            Record(name, start);
+            return result;
         }
         catch (Exception ex)
         {
             ReportOnce(name, ex);
             return null;
+        }
+    }
+
+    private void Record(string name, long start)
+    {
+        var ticks = System.Diagnostics.Stopwatch.GetTimestamp() - start;
+        lock (_timings)
+        {
+            var (t, c) = _timings.GetValueOrDefault(name);
+            _timings[name] = (t + ticks, c + 1);
+        }
+    }
+
+    /// <summary>Average cost per data source (ms), for diagnostics and the CI performance report.</summary>
+    public Dictionary<string, double> GetTimings()
+    {
+        lock (_timings)
+        {
+            return _timings.ToDictionary(k => k.Key, k => Math.Round(k.Value.Ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, k.Value.Count), 3));
         }
     }
 

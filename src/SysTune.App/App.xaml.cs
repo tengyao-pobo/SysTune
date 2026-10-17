@@ -74,6 +74,15 @@ public partial class App : Application
                 {
                     ok = snapshot is not null,
                     windowsBuild = Environment.OSVersion.Version.Build,
+                    elevated = Monitoring.HardwareSensors.IsElevated,
+                    sampleCostMs = _controller?.MonitorTimings,
+                    process = new
+                    {
+                        workingSetMB = Math.Round(Environment.WorkingSet / 1048576.0, 1),
+                        managedHeapMB = Math.Round(GC.GetTotalMemory(false) / 1048576.0, 1),
+                        cpuTimeMs = Math.Round(System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds),
+                        uptimeSeconds = seconds,
+                    },
                     snapshot,
                 }, SmokeJson));
             }
