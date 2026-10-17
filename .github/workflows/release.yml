@@ -60,15 +60,13 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
-          # Traditional Chinese wizard text (unofficial translation maintained in the Inno Setup repo).
-          $lang = "${env:ProgramFiles(x86)}\Inno Setup 6\Languages\ChineseTraditional.isl"
-          if (-not (Test-Path $lang)) {
-            try { Invoke-WebRequest https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseTraditional.isl -OutFile installer/ChineseTraditional.isl } catch { Write-Warning "zh-TW installer language unavailable: $_" }
-          } else { Copy-Item $lang installer/ChineseTraditional.isl }
+          # installer/ChineseTraditional.isl is vendored from the Inno Setup repo (official translation).
+          $out = Join-Path $PWD 'artifacts/dist'
           foreach ($arch in 'x64','arm64') {
-            & $iscc /DAppVersion=${{ steps.v.outputs.version }} /DArch=$arch /DSourceDir=..\artifacts\publish\win-$arch /O..\artifacts\dist installer\SysTune.iss
+            & $iscc /DAppVersion=${{ steps.v.outputs.version }} /DArch=$arch /DSourceDir=..\artifacts\publish\win-$arch "/O$out" installer\SysTune.iss
             if ($LASTEXITCODE -ne 0) { throw "ISCC $arch failed" }
           }
+          if (-not (Get-ChildItem $out -Filter '*-setup.exe')) { throw 'No installer was produced' }
 
       - name: Checksums
         shell: pwsh
