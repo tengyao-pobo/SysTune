@@ -54,11 +54,13 @@ function Save-Screenshot([string] $Path) {
 # Desktop-layer test: an ordinary window opened over the widget must cover it, and
 # "Show desktop" (Win+D) must hide that window but keep the widget visible.
 if ($DesktopLayerTest) {
-    $cover = Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList '-NoProfile', '-Command', @'
+    # pwsh's own -WindowStyle hides only its console; the form still gets a normal show state.
+    $cover = Start-Process pwsh -PassThru -ArgumentList '-NoProfile', '-WindowStyle', 'Hidden', '-Command', @'
 Add-Type -AssemblyName System.Windows.Forms
 $f = New-Object Windows.Forms.Form
 $f.StartPosition = 'Manual'; $f.Left = 520; $f.Top = 60; $f.Width = 560; $f.Height = 380
 $f.Text = 'Ordinary app window'; $f.BackColor = [Drawing.Color]::DarkOrange
+$f.Add_Shown({ $f.Activate() })
 [Windows.Forms.Application]::Run($f)
 '@
     Start-Sleep -Seconds 6
@@ -66,6 +68,10 @@ $f.Text = 'Ordinary app window'; $f.BackColor = [Drawing.Color]::DarkOrange
     (New-Object -ComObject Shell.Application).ToggleDesktop()
     Start-Sleep -Seconds 3
     Save-Screenshot (Join-Path $OutDir "$Variant-2-show-desktop.png")
+    # Leave Show desktop again and verify the widget returns under the app window.
+    (New-Object -ComObject Shell.Application).ToggleDesktop()
+    Start-Sleep -Seconds 3
+    Save-Screenshot (Join-Path $OutDir "$Variant-3-restored.png")
     Stop-Process -Id $cover.Id -Force -ErrorAction SilentlyContinue
 }
 
