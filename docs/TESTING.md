@@ -58,13 +58,19 @@
 2. 第一次取樣時 `now - TimeSpan.MinValue` 溢位，導致所有指標顯示「—」→ 改用 nullable 時間戳。
 3. 雲端 VM 的網卡名為「Hyper-V Network Adapter」被誤判為虛擬網卡而顯示離線 → 改以「是否有預設閘道」選擇介面卡。
 
-截圖見 [`docs/screenshots`](screenshots/)（`*-full.png` 為完整螢幕）。CI Runner 的背景是終端機視窗且為伺服器版 Windows，壓克力模糊的實際觀感需在一般桌面確認。
+截圖見 [`docs/screenshots`](screenshots/)（`*-full.png` 為完整螢幕）。
+
+**玻璃／透明效果的驗證**：CI 會先開啟 Windows「透明效果」並最小化所有視窗，讓小工具直接疊在桌布上。
+- `dark-noblur`（無模糊模式）：桌布與背後的系統對話框清楚透出 → **WPF 逐像素透明（分層視窗）在 Windows 上已驗證有效**。
+- `dark-expanded`（壓克力模式）：記錄檔顯示 accent 已成功套用（`effective Acrylic, WPF render tier 2`），但畫面為實色。原因是 CI 虛擬機只有基本顯示驅動（無 GPU），Windows 在此環境以實色取代背景模糊。**模糊本身需在有 GPU 的實體電腦上確認**（列於人工驗證清單）。
+
+最新一次量測（分層視窗版本）：深色展開 59.7 MB 私有記憶體、CPU 1.56%（整機）/ 3.1%（單核心）；精簡模式 52.5 MB、0.86% / 1.7%。
 
 ## 人工驗證清單（實體 Windows 電腦）
 
 以下項目依賴實體硬體、使用者帳號或互動，目前**尚未**在實體電腦驗證：
 
-- [ ] Win11 壓克力／Win10 模糊效果的實際觀感、圓角與陰影
+- [ ] Win11 壓克力／Win10 模糊效果的實際觀感與圓角（CI 虛擬機無 GPU，無法呈現模糊）
 - [ ] 實體 GPU（NVIDIA / AMD / Intel）使用率與工作管理員一致；GPU 溫度
 - [ ] 以系統管理員執行 + PawnIO 時的 CPU 封裝溫度
 - [ ] Spotify Connect 實際登入、跨裝置顯示、切換裝置、音量、拖曳進度（需要 Premium 與開發者應用程式）
@@ -79,8 +85,8 @@
 - **CPU 溫度**：一般權限下只能讀取 ACPI 熱區（很多桌機主機板不提供，或數值固定）；CPU 封裝溫度需系統管理員權限 + 使用者自行安裝 PawnIO 驅動。
 - **Spotify 開發模式限制（2026/02 起）**：應用程式擁有者需 Premium；每個應用程式最多 5 位使用者；播放控制需 Premium。
 - **本機模式**只能看到這台電腦的 Spotify 桌面版，不能切換裝置或調整 Connect 音量；Microsoft Store 版與傳統版都支援。
-- **壓克力 accent API**（`SetWindowCompositionAttribute`）是 Windows 殼層長期使用但未公開文件化的 API；若未來 Windows 版本改變行為，可在設定改用「系統背景」（文件化 API）或「模糊」/「關閉」。
-- **「系統背景」模式**在視窗未聚焦時會變成不透明（Windows 設計如此）。
-- Windows「透明效果」關閉時自動改為不透明背景。
+- **壓克力 accent API**（`SetWindowCompositionAttribute`）是 Windows 殼層長期使用但未公開文件化的 API；若未來 Windows 版本改變行為，可在設定改用「無模糊」（純 WPF 半透明，不依賴該 API）。
+- 沒有 GPU 的虛擬機、部分遠端桌面工作階段、或 Windows「透明效果」／省電模式關閉時，Windows 不會繪製背景模糊（小工具仍為半透明或自動改為較不透明的底色以維持可讀性）。
+- 分層視窗沒有 Windows 11 原生視窗陰影；以玻璃高光邊框呈現層次。圓角以視窗區域裁切，邊緣不做反鋸齒。
 - 執行檔未經程式碼簽章，SmartScreen 會在首次執行時警告。
 - 介面目前僅提供繁體中文。

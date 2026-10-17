@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | 語言／執行環境 | C# 14 / **.NET 10 (LTS)** | 長期支援至 2028 年；可直接 P/Invoke Win32、DWM、PDH；可在 Linux CI 交叉編譯並在 Windows Runner 實測。 |
 | UI 框架 | **WPF** | 成熟穩定、硬體加速、支援 PerMonitorV2 DPI；可完全自訂樣式。WinUI 3 需要 Windows App SDK 執行階段與封裝，對單一小工具負擔較大；Electron/Tauri 記憶體或整合成本較高。 |
-| 玻璃效果 | DWM 延伸框架 + `SetWindowCompositionAttribute` 壓克力（Win11）/ 模糊（Win10），可選 `DWMWA_SYSTEMBACKDROP_TYPE` | 小工具幾乎都處於「未聚焦」狀態；DWM 系統背景材質在未聚焦時會變不透明，accent 壓克力不會。非分層（non-layered）視窗避免 `AllowsTransparency` 的軟體合成成本，並保留 Win11 原生圓角與陰影。 |
+| 玻璃效果 | 逐像素透明的分層視窗（`AllowsTransparency`）+ `SetWindowCompositionAttribute` 壓克力（Win11）/ 模糊（Win10）+ 圓角視窗區域 | 小工具幾乎都處於「未聚焦」狀態；DWM 系統背景材質在未聚焦時會變不透明，accent 壓克力不會。分層視窗的透明度不依賴 DWM 延伸框架，在 CI 實測可正確透出桌布；「無模糊」模式完全不依賴未文件化 API。 |
 | CPU 使用率 | `GetSystemTimes` 差值 | 與工作管理員一致、零配置、極低成本。 |
 | CPU 時脈 | PDH `Processor Information\% Processor Performance` × 基準時脈 | 工作管理員相同算法，免管理員權限。 |
 | GPU 使用率／VRAM | PDH `GPU Engine` / `GPU Adapter Memory` + **DXGI** 列舉介面卡 | 與工作管理員同源；Intel / AMD / NVIDIA 通用，不需廠商 SDK；以 LUID 對應介面卡。 |
@@ -77,7 +77,7 @@ DispatcherTimer 500ms (僅可見時) ──► 進度條外插（不打 API）
 - **方向**：Minimal / Glassmorphism / Premium / Windows Native。
 - **尺寸**：展開 340 DIP 寬（高度依內容），精簡 460×56 DIP 膠囊；右下角拖曳可等比縮放 85%–160%（保持設計比例，而非重新排版）。
 - **字體**：Segoe UI（中文退回 Microsoft JhengHei UI）；圖示使用 Segoe Fluent Icons（Win10 退回 Segoe MDL2 Assets），與系統一致且不需額外資源。
-- **層次**：玻璃（系統模糊）→ 可調不透明度的色調層 → 頂部微光漸層 → 1px 髮絲邊框；指標卡片使用極淡的白色/黑色疊層。
+- **層次**：系統模糊（含極淡底色，確保亮色桌布上的可讀性）→ 可調不透明度的色調層（預設 35%）→ 對角線光澤 → 左上亮、右下暗的漸層玻璃邊緣；指標卡片為半透明漸層並帶高光邊框。
 - **色彩**：每個指標固定一個語意色（CPU 青藍、GPU 紫、記憶體綠、下載藍、上傳粉、磁碟琥珀、Spotify 綠），淺色主題使用加深版本以確保對比。
 - **互動**：標題列按鈕只在滑鼠移入時淡入，平時畫面只有資訊；任何空白處可拖曳；Esc 隱藏、空白鍵播放/暫停、Ctrl+←/→ 切歌、Ctrl+, 設定。
 - **動畫**：只在有意義的地方使用（按鈕淡入、磁碟條 350ms 緩動、播放鍵微放大），尊重系統「顯示動畫」設定。

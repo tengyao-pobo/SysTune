@@ -28,7 +28,7 @@
 - OAuth PKCE、Token 以 DPAPI 加密；網路斷線、429 限流、授權撤銷都會自動處理，**不影響系統監控**
 
 **桌面小工具**
-- 壓克力／模糊玻璃效果、Win11 原生圓角與陰影、深色／淺色／跟隨系統
+- 半透明玻璃：壓克力（磨砂）／模糊／無模糊三種效果、玻璃高光邊框與光澤、Win11 圓角、深色／淺色／跟隨系統
 - 展開模式與精簡膠囊模式（各自記住位置與大小）
 - 拖曳移動、右下角等比縮放、永遠置頂、鎖定位置、背景不透明度調整
 - 通知區圖示（左鍵顯示/隱藏、右鍵選單、滑鼠停留顯示 CPU/RAM/網速）
@@ -40,9 +40,15 @@
 
 截圖由 CI 在 GitHub Actions 的 Windows Server 2025 Runner 上實際執行 SysTune 自動擷取，顯示的是該虛擬機的真實資料（無 GPU、未連結 Spotify）。詳見 [docs/TESTING.md](docs/TESTING.md)。
 
-| 深色・展開 | 淺色・設定 | 精簡模式 |
-| --- | --- | --- |
-| ![dark](docs/screenshots/dark-expanded.png) | ![light](docs/screenshots/light-settings.png) | ![compact](docs/screenshots/dark-compact.png) |
+| 深色・半透明（無模糊模式，可見桌布與背後視窗透出） | 淺色・設定 |
+| --- | --- |
+| ![dark translucent](docs/screenshots/dark-noblur.png) | ![light](docs/screenshots/light-settings.png) |
+
+精簡模式：
+
+![compact](docs/screenshots/dark-compact.png)
+
+> CI 虛擬機沒有 GPU，Windows 在這種環境會把壓克力／模糊背景改畫成實色，所以 CI 只能截到「無模糊」的半透明效果；在有顯示卡的一般電腦上，預設的壓克力模式會在半透明之外再加上背景模糊（磨砂玻璃）。
 
 ## 安裝
 

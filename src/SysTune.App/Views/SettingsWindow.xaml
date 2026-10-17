@@ -78,7 +78,7 @@
                     <WrapPanel>
                         <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="壓克力" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Acrylic}" />
                         <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="模糊" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Blur}" />
-                        <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="關閉" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Off}" />
+                        <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="無模糊" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Off}" />
                     </WrapPanel>
                     <TextBlock Text="{Binding GlassNote}" Style="{StaticResource Hint}" />
 
