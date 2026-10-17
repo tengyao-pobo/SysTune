@@ -46,6 +46,10 @@ jobs:
         shell: pwsh
         run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant dark-compact -Theme Dark -Mode Compact
 
+      - name: Smoke test – dark / no blur (verifies per-pixel transparency independently of DWM blur support)
+        shell: pwsh
+        run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant dark-noblur -Theme Dark -Mode Expanded -Glass Off
+
       - name: Upload test results and smoke artifacts
         if: always()
         uses: actions/upload-artifact@v5

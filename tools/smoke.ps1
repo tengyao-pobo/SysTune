@@ -9,6 +9,7 @@ param(
     [string] $Variant = 'dark-expanded',
     [string] $Theme = 'Dark',
     [string] $Mode = 'Expanded',
+    [string] $Glass = 'Acrylic',
     [switch] $ShowSettings,
     [int] $Seconds = 40
 )
@@ -21,7 +22,7 @@ $logDir = Join-Path $env:LOCALAPPDATA 'SysTune\logs'
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
 Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $logDir 'smoke-result.json')
 @{
-    version = 1; theme = $Theme; mode = $Mode; glass = 'Acrylic'; tintOpacity = 0.35; alwaysOnTop = $true
+    version = 1; theme = $Theme; mode = $Mode; glass = $Glass; tintOpacity = 0.35; alwaysOnTop = $true
     expanded = @{ width = 340 }; compact = @{ width = 460 }
 } | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $settingsDir 'settings.json')
 
