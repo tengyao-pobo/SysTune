@@ -67,6 +67,7 @@ public partial class MainWindow : Window
             e.Handled = true;
         };
         DpiChanged += (_, _) => _app.ApplyGlass();
+        SizeChanged += (_, _) => WindowEffects.UpdateRegion(this);
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
@@ -86,7 +87,7 @@ public partial class MainWindow : Window
     /// <summary>Applies the backdrop and returns the effective mode.</summary>
     internal GlassMode ApplyGlass(GlassMode mode, bool dark)
     {
-        Resources["WindowCorner"] = new CornerRadius(WindowEffects.IsWindows11 ? 8 : 0);
+        Resources["WindowCorner"] = new CornerRadius(WindowEffects.IsWindows11 ? WindowEffects.CornerRadiusDip : 0);
         return WindowEffects.Apply(this, mode, dark);
     }
 

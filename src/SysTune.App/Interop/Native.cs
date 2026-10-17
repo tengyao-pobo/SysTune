@@ -66,6 +66,16 @@ internal static partial class Native
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool SetForegroundWindow(nint hWnd);
 
+    [LibraryImport("gdi32.dll")]
+    internal static partial nint CreateRoundRectRgn(int left, int top, int right, int bottom, int widthEllipse, int heightEllipse);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DeleteObject(nint handle);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int SetWindowRgn(nint hWnd, nint hRgn, [MarshalAs(UnmanagedType.Bool)] bool redraw);
+
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetWindowRect(nint hWnd, out RECT rect);
@@ -131,36 +141,7 @@ internal static partial class Native
     // ---------- dwmapi ----------
 
     internal const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
-    internal const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
-    internal const int DWMWA_BORDER_COLOR = 34;
-    internal const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
-
-    internal const int DWMWCP_DONOTROUND = 1;
-    internal const int DWMWCP_ROUND = 2;
-
-    internal const int DWMSBT_NONE = 1;
-    internal const int DWMSBT_TRANSIENTWINDOW = 3;
-
-    internal const uint DWMWA_COLOR_DEFAULT = 0xFFFFFFFF;
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct MARGINS
-    {
-        public int Left;
-        public int Right;
-        public int Top;
-        public int Bottom;
-    }
 
     [LibraryImport("dwmapi.dll")]
     internal static partial int DwmSetWindowAttribute(nint hwnd, int attribute, ref int value, int size);
-
-    [LibraryImport("dwmapi.dll")]
-    internal static partial int DwmSetWindowAttribute(nint hwnd, int attribute, ref uint value, int size);
-
-    [LibraryImport("dwmapi.dll")]
-    internal static partial int DwmExtendFrameIntoClientArea(nint hwnd, ref MARGINS margins);
-
-    [LibraryImport("dwmapi.dll")]
-    internal static partial int DwmIsCompositionEnabled([MarshalAs(UnmanagedType.Bool)] out bool enabled);
 }

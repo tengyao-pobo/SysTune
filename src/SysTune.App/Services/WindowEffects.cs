@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Microsoft.Win32;
 using SysTune.App.Interop;
 using SysTune.Core.Settings;
@@ -9,25 +10,23 @@ namespace SysTune.App.Services;
 
 /// <summary>
 /// Applies the glass backdrop to a WPF window.
-/// The window keeps a DWM-extended frame (WindowChrome GlassFrameThickness=-1, non-layered for performance)
-/// and gets one of:
-/// <list type="bullet">
-/// <item>Acrylic: accent policy acrylic blur on Windows 11 (stays translucent when the window is inactive,
-/// which matters for a widget that is almost never focused); plain blur on Windows 10, where acrylic
-/// lags while dragging.</item>
-/// <item>Blur: accent policy gaussian blur.</item>
-/// <item>SystemBackdrop: documented DWMWA_SYSTEMBACKDROP_TYPE acrylic (Windows 11 22H2+).</item>
-/// <item>Off: no blur; the WPF tint layer is drawn opaque.</item>
-/// </list>
-/// Rounded corners use the documented DWMWA_WINDOW_CORNER_PREFERENCE on Windows 11.
+/// <para>
+/// Windows are per-pixel-alpha layered windows (<c>AllowsTransparency=True</c>): this is the only WPF
+/// configuration whose transparency survives both hardware and software rendering (VMs, RDP, GPUs that
+/// WPF does not accelerate). The blur behind is supplied by the shell's accent policy
+/// (<c>SetWindowCompositionAttribute</c>): acrylic on Windows 11 – which stays translucent while the
+/// window is inactive, essential for a widget – and gaussian blur on Windows 10, where acrylic lags while
+/// dragging. Layered windows don't get DWM rounded corners, so the blur is clipped with a rounded window
+/// region that matches the WPF corner radius.
+/// </para>
 /// </summary>
 internal static class WindowEffects
 {
+    public const double CornerRadiusDip = 8;
+
     public static int Build { get; } = Environment.OSVersion.Version.Build;
 
     public static bool IsWindows11 => Build >= 22000;
-
-    public static bool SupportsSystemBackdrop => Build >= 22621;
 
     /// <summary>Windows "Transparency effects" toggle (Settings → Personalization → Colors).</summary>
     public static bool TransparencyEnabled()
@@ -43,57 +42,51 @@ internal static class WindowEffects
         }
     }
 
+    /// <summary>WPF render tier (0 = software, 2 = full hardware), for diagnostics.</summary>
+    public static int RenderTier => RenderCapability.Tier >> 16;
+
     /// <summary>Applies the effect and returns the mode that is actually in effect.</summary>
     public static GlassMode Apply(Window window, GlassMode requested, bool dark)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == 0) return GlassMode.Off;
 
-        if (IsWindows11)
-        {
-            var corner = Native.DWMWCP_ROUND;
-            Native.DwmSetWindowAttribute(hwnd, Native.DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
-        }
         var darkFlag = dark ? 1 : 0;
         Native.DwmSetWindowAttribute(hwnd, Native.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkFlag, sizeof(int));
+        UpdateRegion(window);
 
-        // Make sure the whole client area is DWM "glass" so the backdrop shows through transparent pixels.
-        var margins = new Native.MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
-        Native.DwmExtendFrameIntoClientArea(hwnd, ref margins);
-        if (HwndSource.FromHwnd(hwnd) is { CompositionTarget: { } target })
+        if (requested == GlassMode.Off || !TransparencyEnabled())
         {
-            target.BackgroundColor = System.Windows.Media.Colors.Transparent;
+            SetAccent(hwnd, Native.AccentState.ACCENT_DISABLED, 0);
+            return GlassMode.Off;
         }
 
-        // Reset everything first so switching modes is clean.
-        SetAccent(hwnd, Native.AccentState.ACCENT_DISABLED, 0);
-        if (SupportsSystemBackdrop)
+        // A faint base tint inside the blur keeps text legible over bright wallpapers; the main,
+        // user-adjustable tint is drawn by WPF on top. Colour format is AABBGGRR.
+        var baseTint = dark ? 0x26100C0Au : 0x26FCFAF8u;
+        if (IsWindows11 && requested != GlassMode.Blur)
         {
-            var none = Native.DWMSBT_NONE;
-            Native.DwmSetWindowAttribute(hwnd, Native.DWMWA_SYSTEMBACKDROP_TYPE, ref none, sizeof(int));
+            return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND, baseTint) ? GlassMode.Acrylic : GlassMode.Off;
         }
+        return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_BLURBEHIND, 0) ? GlassMode.Blur : GlassMode.Off;
+    }
 
-        if (!TransparencyEnabled()) return GlassMode.Off;
-
-        switch (requested)
+    /// <summary>Clips the window (and therefore the blur) to rounded corners. Call after size/DPI changes.</summary>
+    public static void UpdateRegion(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == 0 || window.ActualWidth <= 0) return;
+        if (!IsWindows11)
         {
-            case GlassMode.SystemBackdrop when SupportsSystemBackdrop:
-                var type = Native.DWMSBT_TRANSIENTWINDOW;
-                return Native.DwmSetWindowAttribute(hwnd, Native.DWMWA_SYSTEMBACKDROP_TYPE, ref type, sizeof(int)) == 0 ? GlassMode.SystemBackdrop : GlassMode.Off;
-            case GlassMode.SystemBackdrop:
-            case GlassMode.Acrylic:
-                if (IsWindows11)
-                {
-                    // A faint base tint inside the acrylic keeps text legible over bright wallpapers; the main,
-                    // user-adjustable tint is drawn by WPF on top (AABBGGRR).
-                    return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND, dark ? 0x26100C0Au : 0x26FCFAF8u) ? GlassMode.Acrylic : GlassMode.Off;
-                }
-                return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_BLURBEHIND, 0) ? GlassMode.Blur : GlassMode.Off;
-            case GlassMode.Blur:
-                return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_BLURBEHIND, 0) ? GlassMode.Blur : GlassMode.Off;
-            default:
-                return GlassMode.Off;
+            Native.SetWindowRgn(hwnd, 0, true); // Windows 10 windows are square
+            return;
         }
+        var dpi = VisualTreeHelper.GetDpi(window);
+        var w = (int)Math.Ceiling(window.ActualWidth * dpi.DpiScaleX);
+        var h = (int)Math.Ceiling(window.ActualHeight * dpi.DpiScaleY);
+        var d = (int)Math.Round(CornerRadiusDip * 2 * dpi.DpiScaleX);
+        var rgn = Native.CreateRoundRectRgn(0, 0, w + 1, h + 1, d, d);
+        if (rgn != 0 && Native.SetWindowRgn(hwnd, rgn, true) == 0) Native.DeleteObject(rgn); // on success the system owns rgn
     }
 
     private static bool SetAccent(nint hwnd, Native.AccentState state, uint gradient)

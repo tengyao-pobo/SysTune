@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window
         _app = app;
         InitializeComponent();
         SourceInitialized += (_, _) => _app.ApplyGlass();
+        SizeChanged += (_, _) => WindowEffects.UpdateRegion(this);
         PreviewKeyDown += (_, e) =>
         {
             if (e.Key == System.Windows.Input.Key.Escape) Close();
@@ -22,12 +23,12 @@ public partial class SettingsWindow : Window
 
     internal void ApplyGlass(GlassMode mode, bool dark)
     {
-        Resources["WindowCorner"] = new CornerRadius(WindowEffects.IsWindows11 ? 8 : 0);
+        Resources["WindowCorner"] = new CornerRadius(WindowEffects.IsWindows11 ? WindowEffects.CornerRadiusDip : 0);
         _effective = WindowEffects.Apply(this, mode, dark);
         UpdateTint();
     }
 
-    internal void UpdateTint() => Tint.Opacity = _effective == GlassMode.Off ? 1.0 : Math.Max(0.6, _app.Settings.TintOpacity);
+    internal void UpdateTint() => Tint.Opacity = _effective == GlassMode.Off ? 0.92 : Math.Max(0.6, _app.Settings.TintOpacity);
 
     internal void FocusSpotifySection()
     {

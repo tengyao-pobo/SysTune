@@ -12,10 +12,10 @@ public enum GlassMode
     /// <summary>Plain gaussian blur behind the window (lighter weight).</summary>
     Blur,
 
-    /// <summary>Windows 11 22H2+ system backdrop (DWM Acrylic). Turns opaque while the window is inactive.</summary>
+    /// <summary>Legacy value kept for settings compatibility; treated as <see cref="Acrylic"/>.</summary>
     SystemBackdrop,
 
-    /// <summary>No blur, semi-opaque tinted background.</summary>
+    /// <summary>No blur, semi-transparent tinted background.</summary>
     Off,
 }
 

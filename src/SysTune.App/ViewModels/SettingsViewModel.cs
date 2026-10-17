@@ -73,10 +73,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string RedirectUri => S.Spotify.RedirectUri;
 
     public string GlassNote => WindowEffects.IsWindows11
-        ? (WindowEffects.SupportsSystemBackdrop ? "壓克力：未聚焦時仍保持透明（建議）。系統背景：Windows 原生材質，未聚焦時會變為不透明。" : "壓克力：未聚焦時仍保持透明（建議）。")
-        : "Windows 10 使用模糊效果；壓克力在 Windows 10 拖曳時會延遲，因此自動改用模糊。";
-
-    public bool SupportsSystemBackdrop => WindowEffects.SupportsSystemBackdrop;
+        ? "壓克力：磨砂玻璃（建議）。模糊：較清透的高斯模糊。關閉：不模糊，僅保留半透明。若 Windows「透明效果」已關閉，會自動停用模糊。"
+        : "Windows 10 使用模糊效果（壓克力在 Windows 10 拖曳時會延遲）。關閉：不模糊，僅保留半透明。";
 
     public string VersionText => "版本 " + (Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "1.0.0");
 

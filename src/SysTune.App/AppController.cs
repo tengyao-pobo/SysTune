@@ -79,7 +79,7 @@ internal sealed class AppController : IDisposable
     public NowPlayingViewModel? Player { get; private set; }
 
     /// <summary>Tint opacity actually used: opaque when no blur is available.</summary>
-    public double EffectiveTintOpacity => _effectiveGlass == GlassMode.Off ? 1.0 : Settings.TintOpacity;
+    public double EffectiveTintOpacity => _effectiveGlass == GlassMode.Off ? Math.Max(0.8, Settings.TintOpacity) : Settings.TintOpacity;
 
     /// <summary>Latest snapshot (used by the CI smoke test to verify real data).</summary>
     public SystemSnapshot? LastSnapshot => Volatile.Read(ref _lastSnapshot);
@@ -248,7 +248,7 @@ internal sealed class AppController : IDisposable
         var effective = _window.ApplyGlass(Settings.Glass, _theme.IsDark);
         if (effective != _effectiveGlass || !_glassLogged)
         {
-            Log.Info($"Glass: requested {Settings.Glass}, effective {effective} (transparency effects {(WindowEffects.TransparencyEnabled() ? "on" : "off")}, build {WindowEffects.Build})");
+            Log.Info($"Glass: requested {Settings.Glass}, effective {effective} (transparency effects {(WindowEffects.TransparencyEnabled() ? "on" : "off")}, build {WindowEffects.Build}, WPF render tier {WindowEffects.RenderTier})");
             _glassLogged = true;
         }
         _effectiveGlass = effective;

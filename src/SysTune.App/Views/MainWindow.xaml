@@ -11,6 +11,7 @@
         Width="340"
         SizeToContent="Height"
         WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Background="Transparent"
@@ -21,9 +22,6 @@
         TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="Grayscale">
 
-    <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" GlassFrameThickness="-1" ResizeBorderThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
-    </WindowChrome.WindowChrome>
 
     <Window.Resources>
         <Style x:Key="HeaderButtons" TargetType="StackPanel">

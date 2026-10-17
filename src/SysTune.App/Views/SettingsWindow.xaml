@@ -9,6 +9,7 @@
         Title="SysTune 設定"
         Width="460" Height="640" MinWidth="400" MinHeight="420"
         WindowStyle="None"
+        AllowsTransparency="True"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
@@ -18,7 +19,7 @@
         TextOptions.TextRenderingMode="Grayscale">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="44" GlassFrameThickness="-1" ResizeBorderThickness="6" CornerRadius="0" UseAeroCaptionButtons="False" />
+        <WindowChrome CaptionHeight="44" GlassFrameThickness="0" ResizeBorderThickness="6" CornerRadius="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
@@ -77,8 +78,6 @@
                     <WrapPanel>
                         <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="壓克力" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Acrylic}" />
                         <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="模糊" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Blur}" />
-                        <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="系統背景" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=SystemBackdrop}"
-                                     Visibility="{Binding SupportsSystemBackdrop, Converter={StaticResource Visible}}" />
                         <RadioButton Style="{StaticResource Segment}" GroupName="Glass" Content="關閉" IsChecked="{Binding Glass, Converter={StaticResource EnumEquals}, ConverterParameter=Off}" />
                     </WrapPanel>
                     <TextBlock Text="{Binding GlassNote}" Style="{StaticResource Hint}" />
