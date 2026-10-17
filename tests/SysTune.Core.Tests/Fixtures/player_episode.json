@@ -1,0 +1,17 @@
+{
+  "device": { "id": null, "is_active": true, "is_restricted": true, "name": "Web Player (Chrome)", "type": "Computer", "volume_percent": null },
+  "shuffle_state": false,
+  "repeat_state": "off",
+  "progress_ms": 1000,
+  "item": {
+    "id": "ep1",
+    "uri": "spotify:episode:ep1",
+    "type": "episode",
+    "name": "Episode One",
+    "duration_ms": 1800000,
+    "images": [ { "url": "https://i.scdn.co/image/ep", "height": 300, "width": 300 } ],
+    "show": { "name": "Some Podcast", "images": [] }
+  },
+  "currently_playing_type": "episode",
+  "is_playing": false
+}

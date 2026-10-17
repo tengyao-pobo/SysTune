@@ -1,0 +1,38 @@
+{
+  "device": {
+    "id": "ab12cd34",
+    "is_active": true,
+    "is_private_session": false,
+    "is_restricted": false,
+    "name": "Living Room Speaker",
+    "supports_volume": true,
+    "type": "Speaker",
+    "volume_percent": 42
+  },
+  "shuffle_state": true,
+  "smart_shuffle": false,
+  "repeat_state": "context",
+  "timestamp": 1760000000000,
+  "context": { "type": "playlist", "uri": "spotify:playlist:xyz" },
+  "progress_ms": 61234,
+  "item": {
+    "album": {
+      "album_type": "album",
+      "name": "Random Access Memories",
+      "images": [
+        { "url": "https://i.scdn.co/image/640", "height": 640, "width": 640 },
+        { "url": "https://i.scdn.co/image/300", "height": 300, "width": 300 },
+        { "url": "https://i.scdn.co/image/64", "height": 64, "width": 64 }
+      ]
+    },
+    "artists": [ { "name": "Daft Punk" }, { "name": "Pharrell Williams" } ],
+    "duration_ms": 369626,
+    "id": "69kOkLUCkxIZYexIgSG8rq",
+    "name": "Get Lucky",
+    "type": "track",
+    "uri": "spotify:track:69kOkLUCkxIZYexIgSG8rq"
+  },
+  "currently_playing_type": "track",
+  "actions": { "disallows": { "resuming": true, "seeking": false } },
+  "is_playing": true
+}

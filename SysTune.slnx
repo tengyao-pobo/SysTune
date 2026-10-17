@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SysTune.App/SysTune.App.csproj" />
+    <Project Path="src/SysTune.Core/SysTune.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SysTune.Core.Tests/SysTune.Core.Tests.csproj" />
+  </Folder>
+</Solution>
