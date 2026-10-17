@@ -19,9 +19,9 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -87,7 +87,7 @@ jobs:
           if ($LASTEXITCODE -eq 0) { gh release upload $tag (Get-ChildItem artifacts/dist -File).FullName --clobber }
           else { gh release create $tag (Get-ChildItem artifacts/dist -File).FullName --title "SysTune $tag" --notes $notes --target ${{ github.sha }} }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: release-${{ steps.v.outputs.version }}
