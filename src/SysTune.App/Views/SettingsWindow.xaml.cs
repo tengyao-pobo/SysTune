@@ -27,7 +27,7 @@ public partial class SettingsWindow : Window
         UpdateTint();
     }
 
-    internal void UpdateTint() => Tint.Opacity = _effective == GlassMode.Off ? 1.0 : Math.Max(0.82, _app.Settings.TintOpacity);
+    internal void UpdateTint() => Tint.Opacity = _effective == GlassMode.Off ? 1.0 : Math.Max(0.6, _app.Settings.TintOpacity);
 
     internal void FocusSpotifySection()
     {

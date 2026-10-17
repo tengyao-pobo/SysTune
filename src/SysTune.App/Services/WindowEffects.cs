@@ -84,8 +84,9 @@ internal static class WindowEffects
             case GlassMode.Acrylic:
                 if (IsWindows11)
                 {
-                    // Near-transparent gradient: the visible tint is drawn by WPF so the opacity slider controls it.
-                    return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND, dark ? 0x01141414u : 0x01F4F4F4u) ? GlassMode.Acrylic : GlassMode.Off;
+                    // A faint base tint inside the acrylic keeps text legible over bright wallpapers; the main,
+                    // user-adjustable tint is drawn by WPF on top (AABBGGRR).
+                    return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND, dark ? 0x26100C0Au : 0x26FCFAF8u) ? GlassMode.Acrylic : GlassMode.Off;
                 }
                 return SetAccent(hwnd, Native.AccentState.ACCENT_ENABLE_BLURBEHIND, 0) ? GlassMode.Blur : GlassMode.Off;
             case GlassMode.Blur:

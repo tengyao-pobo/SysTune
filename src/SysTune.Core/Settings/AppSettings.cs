@@ -40,7 +40,7 @@ public sealed class AppSettings
     public GlassMode Glass { get; set; } = GlassMode.Acrylic;
 
     /// <summary>Opacity of the tint layer on top of the glass, 0.2 – 1.0.</summary>
-    public double TintOpacity { get; set; } = 0.55;
+    public double TintOpacity { get; set; } = 0.35;
 
     public bool AlwaysOnTop { get; set; }
 
@@ -84,7 +84,7 @@ public sealed class AppSettings
         if (!Enum.IsDefined(Theme)) Theme = ThemeMode.System;
         if (!Enum.IsDefined(Glass)) Glass = GlassMode.Acrylic;
         if (!Enum.IsDefined(Mode)) Mode = WidgetMode.Expanded;
-        TintOpacity = double.IsNaN(TintOpacity) ? 0.55 : Math.Clamp(TintOpacity, 0.2, 1.0);
+        TintOpacity = double.IsNaN(TintOpacity) ? 0.35 : Math.Clamp(TintOpacity, 0.1, 1.0);
         RefreshIntervalMs = Math.Clamp(RefreshIntervalMs, 500, 10_000);
         Spotify ??= new SpotifySettings();
         Spotify.Normalize();

@@ -50,6 +50,7 @@ internal sealed class AppController : IDisposable
     private SystemSnapshot? _lastSnapshot;
     private int _pendingSnapshot;
     private bool _exiting;
+    private bool _glassLogged;
 
     public AppController(ILog log, SettingsStore store)
     {
@@ -244,7 +245,13 @@ internal sealed class AppController : IDisposable
     public void ApplyGlass()
     {
         if (_window is null) return;
-        _effectiveGlass = _window.ApplyGlass(Settings.Glass, _theme.IsDark);
+        var effective = _window.ApplyGlass(Settings.Glass, _theme.IsDark);
+        if (effective != _effectiveGlass || !_glassLogged)
+        {
+            Log.Info($"Glass: requested {Settings.Glass}, effective {effective} (transparency effects {(WindowEffects.TransparencyEnabled() ? "on" : "off")}, build {WindowEffects.Build})");
+            _glassLogged = true;
+        }
+        _effectiveGlass = effective;
         _settingsWindow?.ApplyGlass(Settings.Glass, _theme.IsDark);
         ViewModel?.SyncFromSettings();
     }

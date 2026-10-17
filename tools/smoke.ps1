@@ -21,9 +21,17 @@ $logDir = Join-Path $env:LOCALAPPDATA 'SysTune\logs'
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
 Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $logDir 'smoke-result.json')
 @{
-    version = 1; theme = $Theme; mode = $Mode; glass = 'Acrylic'; tintOpacity = 0.6; alwaysOnTop = $true
+    version = 1; theme = $Theme; mode = $Mode; glass = 'Acrylic'; tintOpacity = 0.35; alwaysOnTop = $true
     expanded = @{ width = 340 }; compact = @{ width = 460 }
 } | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $settingsDir 'settings.json')
+
+# Server SKUs ship with "Transparency effects" off; turn it on so the glass is rendered like on a desktop,
+# and minimise other windows so the widget sits on the wallpaper (otherwise the blur is invisible).
+$personalize = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+if (-not (Test-Path $personalize)) { New-Item $personalize | Out-Null }
+Set-ItemProperty $personalize -Name EnableTransparency -Value 1 -Type DWord
+(New-Object -ComObject Shell.Application).MinimizeAll()
+Start-Sleep -Seconds 1
 
 $appArgs = @('--smoke-test', "$Seconds")
 if ($ShowSettings) { $appArgs += '--show-settings' }

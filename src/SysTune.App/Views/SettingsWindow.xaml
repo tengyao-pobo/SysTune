@@ -42,7 +42,7 @@
     </Window.Resources>
 
     <Grid>
-        <Border x:Name="Tint" CornerRadius="{DynamicResource WindowCorner}" Background="{DynamicResource Brush.Tint}" Opacity="0.82" />
+        <Border x:Name="Tint" CornerRadius="{DynamicResource WindowCorner}" Background="{DynamicResource Brush.Tint}" Opacity="0.6" />
         <Border CornerRadius="{DynamicResource WindowCorner}" Background="{DynamicResource Brush.Sheen}" BorderBrush="{DynamicResource Brush.Stroke}" BorderThickness="1" />
 
         <Grid>
@@ -87,7 +87,7 @@
                         <TextBlock Text="背景不透明度" Style="{StaticResource FieldLabel}" Margin="0" />
                         <TextBlock Text="{Binding TintOpacityPercent, StringFormat={}{0:0}%}" Style="{StaticResource Text.Caption}" HorizontalAlignment="Right" />
                     </Grid>
-                    <Slider Style="{StaticResource GlassSlider}" Minimum="20" Maximum="100" Margin="0,6,0,0" SmallChange="1" LargeChange="10"
+                    <Slider Style="{StaticResource GlassSlider}" Minimum="10" Maximum="100" Margin="0,6,0,0" SmallChange="1" LargeChange="10"
                             Foreground="{DynamicResource Brush.Spotify}" Value="{Binding TintOpacityPercent}" AutomationProperties.Name="背景不透明度" />
 
                     <!-- ===== Behaviour ===== -->

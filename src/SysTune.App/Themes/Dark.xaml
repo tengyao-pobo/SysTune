@@ -1,22 +1,36 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Surfaces -->
-    <Color x:Key="Color.Tint">#FF14161B</Color>
+    <!-- Tint over the system blur: cool, slightly blue-tinted smoked glass -->
+    <Color x:Key="Color.Tint">#FF10131A</Color>
     <SolidColorBrush x:Key="Brush.Tint" Color="{StaticResource Color.Tint}" />
     <SolidColorBrush x:Key="Brush.Solid" Color="#FF1B1E24" />
-    <LinearGradientBrush x:Key="Brush.Sheen" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#14FFFFFF" Offset="0" />
-        <GradientStop Color="#05FFFFFF" Offset="0.35" />
-        <GradientStop Color="#00FFFFFF" Offset="1" />
+    <!-- Diagonal light sheen across the glass -->
+    <LinearGradientBrush x:Key="Brush.Sheen" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1FFFFFFF" Offset="0" />
+        <GradientStop Color="#08FFFFFF" Offset="0.38" />
+        <GradientStop Color="#00FFFFFF" Offset="0.6" />
+        <GradientStop Color="#06FFFFFF" Offset="1" />
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="Brush.Stroke" Color="#2EFFFFFF" />
+    <!-- Glass edge: light catches the top-left rim, fades toward bottom-right -->
+    <LinearGradientBrush x:Key="Brush.Stroke" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#66FFFFFF" Offset="0" />
+        <GradientStop Color="#1FFFFFFF" Offset="0.45" />
+        <GradientStop Color="#0FFFFFFF" Offset="1" />
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="Brush.Divider" Color="#17FFFFFF" />
-    <SolidColorBrush x:Key="Brush.Tile" Color="#0DFFFFFF" />
-    <SolidColorBrush x:Key="Brush.TileStroke" Color="#12FFFFFF" />
+    <LinearGradientBrush x:Key="Brush.Tile" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#17FFFFFF" Offset="0" />
+        <GradientStop Color="#0AFFFFFF" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Brush.TileStroke" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#33FFFFFF" Offset="0" />
+        <GradientStop Color="#0AFFFFFF" Offset="1" />
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="Brush.Track" Color="#1FFFFFFF" />
     <SolidColorBrush x:Key="Brush.Hover" Color="#1AFFFFFF" />
     <SolidColorBrush x:Key="Brush.Pressed" Color="#0FFFFFFF" />
-    <SolidColorBrush x:Key="Brush.Menu" Color="#F2202329" />
+    <SolidColorBrush x:Key="Brush.Menu" Color="#EB1C1F26" />
     <SolidColorBrush x:Key="Brush.Input" Color="#14FFFFFF" />
     <SolidColorBrush x:Key="Brush.InputStroke" Color="#24FFFFFF" />
     <Color x:Key="Color.Shadow">#99000000</Color>
