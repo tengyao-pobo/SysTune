@@ -70,6 +70,7 @@ DispatcherTimer 500ms (僅可見時) ──► 進度條外插（不打 API）
 - 視窗位置以實體螢幕像素（`GetWindowRect`/`SetWindowPos`）保存，跨螢幕、工作列位置與 DPI 都不受影響；還原前用 `MonitorFromRect` 確認仍在某個螢幕上，避免拔掉螢幕後小工具「消失」。
 - 全域例外處理：UI 例外記錄後繼續執行（連續 20 次才放棄）、背景 Task 例外被觀察並記錄。
 - 單一執行個體：第二次啟動只會喚醒第一個執行個體。
+- 桌面層（`Services/DesktopLayer.cs`）：「顯示桌面」並不會隱藏視窗，而是 Explorer 把桌面圖示宿主（24H2 起為 Progman，之前為含 SHELLDLL_DefView 的 WorkerW）提到所有一般視窗之上。仿照 Rainmeter：一個隱藏的探測視窗固定在 Z 順序最底層，當桌面宿主出現在它上方即判定為顯示桌面（`EVENT_SYSTEM_FOREGROUND` 掛鉤 + 250 ms 計時器），此時把小工具放到最後一個 topmost 視窗之下（工作列之下、桌面之上），結束後退回最底層；平時以 `WM_WINDOWPOSCHANGING` 擋下外部的 Z 順序變更。
 - 記錄檔：`%LOCALAPPDATA%\SysTune\logs\systune.log`，1 MB 滾動保留 3 份，絕不寫入 Token。
 
 ## UI / UX 設計

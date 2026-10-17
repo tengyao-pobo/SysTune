@@ -53,6 +53,8 @@
 
 受控堆積約 5–12 MB。工作集大部分是 WPF / .NET 共用映像。CPU 數字包含 WPF 繪製；量測後已移除每秒的 `GetIsNetworkAvailable()` 呼叫（原本為最貴的取樣來源，每次約 10–16 ms），之後的 CI 會以 `sampleCostMs` 持續追蹤每個資料來源的平均成本。小工具隱藏時取樣降為每 5 秒、Spotify 停止輪詢。
 
+**桌面層（v1.0.1）**：`desktop-layer` 煙霧測試開啟一個一般視窗疊在小工具上、送出真正的 Win+D、再送一次 Win+D，三張截圖分別確認：① 一般視窗蓋住小工具 ② 顯示桌面時一般視窗隱藏、小工具仍可見（記錄檔：`Show desktop detected`）③ 還原後小工具回到一般視窗下方。見 [`desktop-layer.png`](screenshots/desktop-layer.png)。
+
 **CI 抓到並已修正的問題**（這正是實機測試的價值）：
 1. `System.Security.Cryptography.ProtectedData` 套件在 Windows 上被 NuGet 判定為多餘（NU1510）→ 移除（已內建於 Windows Desktop 執行環境）。
 2. 第一次取樣時 `now - TimeSpan.MinValue` 溢位，導致所有指標顯示「—」→ 改用 nullable 時間戳。
@@ -77,6 +79,7 @@
 - [ ] 本機 Spotify 桌面版（SMTC）顯示與控制
 - [ ] 多螢幕、不同 DPI 之間拖曳與重新開機後位置還原
 - [ ] 開機自動啟動與「啟動時隱藏」
+- [ ] Windows 10 / Windows 11 23H2 以前的「顯示桌面」行為（CI 只有 24H2 核心的 Server 2025）
 - [ ] 安裝檔安裝／升級（執行中自動關閉）／解除安裝
 - [ ] 24 小時以上長時間執行的記憶體穩定性
 
