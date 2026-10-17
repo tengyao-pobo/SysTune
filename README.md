@@ -38,7 +38,7 @@
 
 ## 螢幕截圖
 
-截圖由 CI 在 GitHub Actions 的 Windows Runner 上實際執行 SysTune 自動擷取（見 [docs/TESTING.md](docs/TESTING.md)）。
+截圖由 CI 在 GitHub Actions 的 Windows Server 2025 Runner 上實際執行 SysTune 自動擷取，顯示的是該虛擬機的真實資料（無 GPU、未連結 Spotify）。詳見 [docs/TESTING.md](docs/TESTING.md)。
 
 | 深色・展開 | 淺色・設定 | 精簡模式 |
 | --- | --- | --- |

@@ -360,7 +360,9 @@ internal sealed class SystemMonitor : IDisposable
                 _interfacesDirty = true;
             }
         }
-        var connected = NetworkInterface.GetIsNetworkAvailable() && _interfaces.Length > 0;
+        // The interface list is refreshed on NetworkChange events, so no per-tick re-enumeration is needed
+        // (NetworkInterface.GetIsNetworkAvailable() enumerates every adapter and was the most expensive call).
+        var connected = _interfaces.Length > 0;
         return new NetworkSnapshot(connected, primary, _netDown.Update(rx, now), _netUp.Update(tx, now));
     }
 
@@ -460,8 +462,9 @@ internal sealed class SystemMonitor : IDisposable
         var ticks = System.Diagnostics.Stopwatch.GetTimestamp() - start;
         lock (_timings)
         {
-            var (t, c) = _timings.GetValueOrDefault(name);
-            _timings[name] = (t + ticks, c + 1);
+            // The first call of each source includes JIT/initialisation; keep it out of the steady-state average.
+            if (!_timings.TryGetValue(name, out var v)) _timings[name] = (0, 0);
+            else _timings[name] = (v.Ticks + ticks, v.Count + 1);
         }
     }
 
@@ -470,7 +473,8 @@ internal sealed class SystemMonitor : IDisposable
     {
         lock (_timings)
         {
-            return _timings.ToDictionary(k => k.Key, k => Math.Round(k.Value.Ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / Math.Max(1, k.Value.Count), 3));
+            return _timings.Where(k => k.Value.Count > 0)
+                .ToDictionary(k => k.Key, k => Math.Round(k.Value.Ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / k.Value.Count, 3));
         }
     }
 

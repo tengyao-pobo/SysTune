@@ -33,9 +33,32 @@
 - `dotnet test`：**73 / 73 通過**
 - `dotnet publish -r win-x64 --self-contained`：成功（輸出 186 MB 資料夾；安裝檔以 LZMA2 壓縮）
 
-### Windows CI
+### Windows CI（GitHub Actions `windows-latest`：Windows Server 2025 Datacenter build 26100，4 vCPU AMD EPYC，16 GB，無實體 GPU）
 
-> 待 GitHub 儲存庫建立後由 CI 執行，結果與截圖會補在此處。
+| 項目 | 結果 |
+| --- | --- |
+| Release 建置（`-warnaserror`） | ✅ 0 警告 0 錯誤 |
+| 單元測試 | ✅ 73 / 73 通過（`unit-tests.trx` + Cobertura 覆蓋率作為 CI 產物） |
+| 煙霧測試：深色展開 / 淺色＋設定視窗 / 深色精簡 | ✅ 三者皆啟動、取樣、截圖並以結束碼 0 自行結束 |
+| 真實資料（`smoke-result.json`） | ✅ CPU 型號 `AMD EPYC 7763 64-Core Processor`、使用率與即時時脈；16 GB 記憶體；C:/D: 磁碟容量與活動；網路介面 `Ethernet 3` 與實際流量；無電池；開機時間 |
+| 不可用資料 | ✅ 無 GPU → 顯示「未偵測到硬體 GPU」；無溫度感測器 → 不顯示溫度；未設定 Spotify → 顯示設定提示，系統監控正常 |
+
+**資源用量**（啟動 25 秒後量測 10 秒，1 秒取樣間隔，小工具顯示中）：
+
+| 畫面 | 私有記憶體 | 工作集 | 執行緒 | CPU（整機 / 單核心） |
+| --- | --- | --- | --- | --- |
+| 深色展開 | 54.2 MB | 147.5 MB | 18 | 1.25% / 2.5% |
+| 淺色＋設定視窗 | 65.8 MB | 161.0 MB | 17 | 1.88% / 3.75% |
+| 深色精簡 | 54.4 MB | 144.2 MB | 17 | 1.25% / 2.5% |
+
+受控堆積約 5–12 MB。工作集大部分是 WPF / .NET 共用映像。CPU 數字包含 WPF 繪製；量測後已移除每秒的 `GetIsNetworkAvailable()` 呼叫（原本為最貴的取樣來源，每次約 10–16 ms），之後的 CI 會以 `sampleCostMs` 持續追蹤每個資料來源的平均成本。小工具隱藏時取樣降為每 5 秒、Spotify 停止輪詢。
+
+**CI 抓到並已修正的問題**（這正是實機測試的價值）：
+1. `System.Security.Cryptography.ProtectedData` 套件在 Windows 上被 NuGet 判定為多餘（NU1510）→ 移除（已內建於 Windows Desktop 執行環境）。
+2. 第一次取樣時 `now - TimeSpan.MinValue` 溢位，導致所有指標顯示「—」→ 改用 nullable 時間戳。
+3. 雲端 VM 的網卡名為「Hyper-V Network Adapter」被誤判為虛擬網卡而顯示離線 → 改以「是否有預設閘道」選擇介面卡。
+
+截圖見 [`docs/screenshots`](screenshots/)（`*-full.png` 為完整螢幕）。CI Runner 的背景是終端機視窗且為伺服器版 Windows，壓克力模糊的實際觀感需在一般桌面確認。
 
 ## 人工驗證清單（實體 Windows 電腦）
 
