@@ -54,14 +54,14 @@ function Save-Screenshot([string] $Path) {
 # Desktop-layer test: an ordinary window opened over the widget must cover it, and
 # "Show desktop" (Win+D) must hide that window but keep the widget visible.
 if ($DesktopLayerTest) {
-    $cover = Start-Process pwsh -PassThru -ArgumentList '-NoProfile', '-Command', @'
+    $cover = Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList '-NoProfile', '-Command', @'
 Add-Type -AssemblyName System.Windows.Forms
 $f = New-Object Windows.Forms.Form
 $f.StartPosition = 'Manual'; $f.Left = 520; $f.Top = 60; $f.Width = 560; $f.Height = 380
 $f.Text = 'Ordinary app window'; $f.BackColor = [Drawing.Color]::DarkOrange
 [Windows.Forms.Application]::Run($f)
 '@
-    Start-Sleep -Seconds 4
+    Start-Sleep -Seconds 6
     Save-Screenshot (Join-Path $OutDir "$Variant-1-covered.png")
     (New-Object -ComObject Shell.Application).ToggleDesktop()
     Start-Sleep -Seconds 3

@@ -131,18 +131,4 @@ internal static class WindowEffects
         Native.SetWindowLongPtr(hwnd, Native.GWL_EXSTYLE, (nint)ex);
         return true;
     }
-
-    /// <summary>
-    /// Makes the desktop (Progman, owned by Explorer) the window's owner. Owned-by-desktop windows are not
-    /// hidden by "Show desktop" (Win+D / the taskbar corner), which is what a desktop widget needs, while
-    /// still taking part in normal z-order. Returns false if the desktop window was not found.
-    /// </summary>
-    public static bool AttachToDesktop(Window window)
-    {
-        var hwnd = new WindowInteropHelper(window).Handle;
-        var progman = Native.FindWindow("Progman", null);
-        if (hwnd == 0 || progman == 0) return false;
-        Native.SetWindowLongPtr(hwnd, Native.GWLP_HWNDPARENT, progman);
-        return true;
-    }
 }

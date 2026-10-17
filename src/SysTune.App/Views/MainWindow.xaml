@@ -13,7 +13,7 @@
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="NoResize"
-        ShowInTaskbar="False"
+        ShowInTaskbar="True"
         Background="Transparent"
         FontFamily="{StaticResource UiFont}"
         Foreground="{DynamicResource Brush.Text1}"
