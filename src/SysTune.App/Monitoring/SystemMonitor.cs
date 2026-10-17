@@ -37,10 +37,10 @@ internal sealed class SystemMonitor : IDisposable
     private PdhQuery.PdhCounter? _thermal;
     private List<Dxgi.AdapterInfo> _adapters = [];
     private NetworkInterface[] _interfaces = [];
-    private TimeSpan _interfacesRefreshedAt = TimeSpan.MinValue;
+    private TimeSpan? _interfacesRefreshedAt;
     private volatile bool _interfacesDirty = true;
     private IReadOnlyList<DriveSnapshot> _drives = [];
-    private TimeSpan _drivesRefreshedAt = TimeSpan.MinValue;
+    private TimeSpan? _drivesRefreshedAt;
     private PowerSnapshot? _power;
     private double? _acpiTemp;
     private GpuSnapshot? _lastGpu;
@@ -223,7 +223,7 @@ internal sealed class SystemMonitor : IDisposable
             : new MemorySnapshot(0, 0, 0, 0);
 
         // ---- Drives (every 15 s) ----
-        if (now - _drivesRefreshedAt > TimeSpan.FromSeconds(15))
+        if (_drivesRefreshedAt is not { } drivesAt || now - drivesAt > TimeSpan.FromSeconds(15))
         {
             _drives = TryGet("drives", SampleDrives) ?? _drives;
             _drivesRefreshedAt = now;
@@ -323,7 +323,7 @@ internal sealed class SystemMonitor : IDisposable
 
     private NetworkSnapshot SampleNetwork(TimeSpan now)
     {
-        if (_interfacesDirty || now - _interfacesRefreshedAt > TimeSpan.FromSeconds(30))
+        if (_interfacesDirty || _interfacesRefreshedAt is not { } ifAt || now - ifAt > TimeSpan.FromSeconds(30))
         {
             _interfaces = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(n => n.OperationalStatus == OperationalStatus.Up

@@ -31,7 +31,7 @@ public sealed partial class NowPlayingViewModel : ObservableObject
     private string? _artKey;
     private NowPlaying? _current;
     private int _pendingVolume = -1;
-    private TimeSpan _userVolumeAt = TimeSpan.MinValue;
+    private TimeSpan? _userVolumeAt;
 
     internal NowPlayingViewModel(SpotifyPlaybackService spotify, LocalMediaSession local, ArtworkLoader artwork, IClock clock, ILog log, Func<AppSettings> settings, Action openSpotifySettings)
     {
@@ -211,7 +211,7 @@ public sealed partial class NowPlayingViewModel : ObservableObject
         RepeatGlyph = np.Repeat == RepeatMode.Track ? "" : "";
         HasVolume = np.VolumePercent is not null;
         // Spotify reports the old volume for a moment after a change; don't snap the slider back.
-        if (np.VolumePercent is { } vol && !_volumeDebounce.IsEnabled && _clock.Elapsed - _userVolumeAt > TimeSpan.FromSeconds(3)) Volume = vol;
+        if (np.VolumePercent is { } vol && !_volumeDebounce.IsEnabled && (_userVolumeAt is not { } at || _clock.Elapsed - at > TimeSpan.FromSeconds(3))) Volume = vol;
         Tick();
         LoadArtwork(np);
     }
