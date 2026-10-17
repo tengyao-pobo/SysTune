@@ -50,6 +50,10 @@ jobs:
         shell: pwsh
         run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant dark-noblur -Theme Dark -Mode Expanded -Glass Off
 
+      - name: Smoke test – desktop layer (under app windows, survives Show desktop)
+        shell: pwsh
+        run: ./tools/smoke.ps1 -Exe artifacts/publish/win-x64/SysTune.exe -OutDir artifacts/smoke -Variant desktop-layer -Theme Dark -Mode Expanded -AlwaysOnTop $false -DesktopLayerTest
+
       - name: Upload test results and smoke artifacts
         if: always()
         uses: actions/upload-artifact@v5

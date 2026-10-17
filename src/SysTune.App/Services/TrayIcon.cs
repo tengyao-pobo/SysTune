@@ -13,7 +13,7 @@ namespace SysTune.App.Services;
 internal sealed class TrayIcon : IDisposable
 {
     private readonly Forms.NotifyIcon _icon;
-    private readonly Window _owner;
+    private Window _owner;
     private readonly Func<ContextMenu> _menuFactory;
     private System.Drawing.Icon? _current;
     private DateTime _lastClick;
@@ -30,6 +30,13 @@ internal sealed class TrayIcon : IDisposable
     }
 
     public event EventHandler? LeftClick;
+
+    /// <summary>Window used to marshal to the UI thread (updated if the widget window is recreated).</summary>
+    public Window Owner
+    {
+        get => _owner;
+        set => _owner = value;
+    }
 
     /// <summary>Re-selects the icon to match the taskbar (light vs dark) theme.</summary>
     public void UpdateIcon()

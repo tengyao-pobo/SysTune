@@ -44,7 +44,8 @@ public sealed class AppSettings
 
     public bool AlwaysOnTop { get; set; }
 
-    public bool StartWithWindows { get; set; }
+    /// <summary>On by default: a desktop widget is expected to be there after signing in.</summary>
+    public bool StartWithWindows { get; set; } = true;
 
     public bool StartHidden { get; set; }
 

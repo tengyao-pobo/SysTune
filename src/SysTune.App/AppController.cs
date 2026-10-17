@@ -127,10 +127,9 @@ internal sealed class AppController : IDisposable
         _systemVm.UseFahrenheit = Settings.UseFahrenheit;
         ViewModel = new MainViewModel(this, _systemVm, Player);
 
-        _window = new MainWindow(this) { DataContext = ViewModel };
-        _window.IsVisibleChanged += (_, _) => OnWidgetVisibilityChanged();
+        CreateWindow();
 
-        _tray = new TrayIcon(_window, BuildTrayMenu);
+        _tray = new TrayIcon(_window!, BuildTrayMenu);
         _tray.LeftClick += (_, _) => ToggleWidget();
 
         _monitor.IntervalMs = Settings.RefreshIntervalMs;
@@ -150,8 +149,35 @@ internal sealed class AppController : IDisposable
         }
         else
         {
-            ShowWidget();
+            // Appear on the desktop layer without stealing focus from whatever the user is doing.
+            _window!.ShowActivated = false;
+            _window.Show();
+            _window.SendToBottom();
         }
+    }
+
+    private void CreateWindow()
+    {
+        _window = new MainWindow(this) { DataContext = ViewModel };
+        _window.IsVisibleChanged += (_, _) => OnWidgetVisibilityChanged();
+        _window.Closed += OnWindowClosed;
+    }
+
+    /// <summary>
+    /// The widget window can be destroyed from outside (e.g. Explorer crashes and takes the desktop window
+    /// that owns it). Recreate it instead of leaving a running app with no UI.
+    /// </summary>
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        if (_exiting) return;
+        Log.Warn("Widget window was destroyed externally; recreating it");
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            if (_exiting) return;
+            CreateWindow();
+            if (_tray is not null) _tray.Owner = _window!;
+            ShowWidget();
+        }, DispatcherPriority.Background);
     }
 
     // ---------------- Monitoring ----------------
@@ -189,14 +215,16 @@ internal sealed class AppController : IDisposable
         if (_window is null) return;
         if (!_window.IsVisible) _window.Show();
         if (_window.WindowState == System.Windows.WindowState.Minimized) _window.WindowState = System.Windows.WindowState.Normal;
-        _window.Activate();
+        // On the desktop layer the widget is normally under other windows; surface it until the user moves on.
+        _window.Peek();
     }
 
     public void HideWidget() => _window?.Hide();
 
+    /// <summary>Tray click: hide if it is the active window, otherwise surface it.</summary>
     public void ToggleWidget()
     {
-        if (_window?.IsVisible == true) HideWidget();
+        if (_window?.IsVisible == true && _window.IsActive) HideWidget();
         else ShowWidget();
     }
 

@@ -115,13 +115,34 @@ internal static class WindowEffects
         }
     }
 
-    /// <summary>Hides the window from Alt+Tab (tool window) unless it should appear in the taskbar.</summary>
-    public static void SetToolWindow(Window window, bool toolWindow)
+    /// <summary>
+    /// Tool window (no taskbar button, not in Alt+Tab) or app window (forced taskbar button even though the
+    /// window is owned by the desktop). Returns true if the style changed.
+    /// </summary>
+    public static bool SetToolWindow(Window window, bool toolWindow)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd == 0) return;
-        var ex = (long)Native.GetWindowLongPtr(hwnd, Native.GWL_EXSTYLE);
-        ex = toolWindow ? (ex | Native.WS_EX_TOOLWINDOW) & ~Native.WS_EX_APPWINDOW : ex & ~Native.WS_EX_TOOLWINDOW;
+        if (hwnd == 0) return false;
+        var old = (long)Native.GetWindowLongPtr(hwnd, Native.GWL_EXSTYLE);
+        var ex = toolWindow
+            ? (old | Native.WS_EX_TOOLWINDOW) & ~Native.WS_EX_APPWINDOW
+            : (old & ~Native.WS_EX_TOOLWINDOW) | Native.WS_EX_APPWINDOW;
+        if (ex == old) return false;
         Native.SetWindowLongPtr(hwnd, Native.GWL_EXSTYLE, (nint)ex);
+        return true;
+    }
+
+    /// <summary>
+    /// Makes the desktop (Progman, owned by Explorer) the window's owner. Owned-by-desktop windows are not
+    /// hidden by "Show desktop" (Win+D / the taskbar corner), which is what a desktop widget needs, while
+    /// still taking part in normal z-order. Returns false if the desktop window was not found.
+    /// </summary>
+    public static bool AttachToDesktop(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        var progman = Native.FindWindow("Progman", null);
+        if (hwnd == 0 || progman == 0) return false;
+        Native.SetWindowLongPtr(hwnd, Native.GWLP_HWNDPARENT, progman);
+        return true;
     }
 }

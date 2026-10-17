@@ -11,6 +11,8 @@ param(
     [string] $Mode = 'Expanded',
     [string] $Glass = 'Acrylic',
     [switch] $ShowSettings,
+    [switch] $DesktopLayerTest,
+    [bool] $AlwaysOnTop = $true,
     [int] $Seconds = 40
 )
 $ErrorActionPreference = 'Stop'
@@ -22,7 +24,7 @@ $logDir = Join-Path $env:LOCALAPPDATA 'SysTune\logs'
 New-Item -ItemType Directory -Force $settingsDir | Out-Null
 Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $logDir 'smoke-result.json')
 @{
-    version = 1; theme = $Theme; mode = $Mode; glass = $Glass; tintOpacity = 0.35; alwaysOnTop = $true
+    version = 1; theme = $Theme; mode = $Mode; glass = $Glass; tintOpacity = 0.35; alwaysOnTop = $AlwaysOnTop
     expanded = @{ width = 340 }; compact = @{ width = 460 }
 } | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $settingsDir 'settings.json')
 
@@ -38,6 +40,34 @@ $appArgs = @('--smoke-test', "$Seconds")
 if ($ShowSettings) { $appArgs += '--show-settings' }
 $p = Start-Process -FilePath $Exe -ArgumentList $appArgs -PassThru
 Start-Sleep -Seconds ([Math]::Max(6, $Seconds - 15))
+
+function Save-Screenshot([string] $Path) {
+    Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+    $gr = [System.Drawing.Graphics]::FromImage($bmp)
+    $gr.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+    $bmp.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
+    $gr.Dispose(); $bmp.Dispose()
+}
+
+# Desktop-layer test: an ordinary window opened over the widget must cover it, and
+# "Show desktop" (Win+D) must hide that window but keep the widget visible.
+if ($DesktopLayerTest) {
+    $cover = Start-Process pwsh -PassThru -ArgumentList '-NoProfile', '-Command', @'
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object Windows.Forms.Form
+$f.StartPosition = 'Manual'; $f.Left = 520; $f.Top = 60; $f.Width = 560; $f.Height = 380
+$f.Text = 'Ordinary app window'; $f.BackColor = [Drawing.Color]::DarkOrange
+[Windows.Forms.Application]::Run($f)
+'@
+    Start-Sleep -Seconds 4
+    Save-Screenshot (Join-Path $OutDir "$Variant-1-covered.png")
+    (New-Object -ComObject Shell.Application).ToggleDesktop()
+    Start-Sleep -Seconds 3
+    Save-Screenshot (Join-Path $OutDir "$Variant-2-show-desktop.png")
+    Stop-Process -Id $cover.Id -Force -ErrorAction SilentlyContinue
+}
 
 # Process metrics while running (real numbers for the test report).
 $proc = Get-Process -Id $p.Id -ErrorAction SilentlyContinue

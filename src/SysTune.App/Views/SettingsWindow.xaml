@@ -91,7 +91,7 @@
 
                     <!-- ===== Behaviour ===== -->
                     <TextBlock Text="行為" Style="{StaticResource Section}" />
-                    <CheckBox Style="{StaticResource ToggleSwitch}" Content="永遠置頂" IsChecked="{Binding AlwaysOnTop}" />
+                    <CheckBox Style="{StaticResource ToggleSwitch}" Content="永遠置頂（關閉時固定在桌面層，位於所有視窗下方）" IsChecked="{Binding AlwaysOnTop}" />
                     <CheckBox Style="{StaticResource ToggleSwitch}" Content="鎖定位置（停用拖曳與縮放）" IsChecked="{Binding LockPosition}" />
                     <CheckBox Style="{StaticResource ToggleSwitch}" Content="開機時自動啟動" IsChecked="{Binding StartWithWindows}" />
                     <CheckBox Style="{StaticResource ToggleSwitch}" Content="自動啟動時隱藏到通知區" IsChecked="{Binding StartHidden}" IsEnabled="{Binding StartWithWindows}" />

@@ -5,7 +5,9 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using SysTune.App.Interop;
 using SysTune.App.Services;
+using SysTune.Core.Logging;
 using SysTune.App.ViewModels;
 using SysTune.Core.Settings;
 
@@ -67,6 +69,17 @@ public partial class MainWindow : Window
             e.Handled = true;
         };
         DpiChanged += (_, _) => _app.ApplyGlass();
+        Deactivated += (_, _) =>
+        {
+            if (!_peeking) return;
+            _peeking = false;
+            SendToBottom();
+        };
+        // A desktop widget is never minimised (e.g. by "Minimize all" / Win+M).
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == System.Windows.WindowState.Minimized) WindowState = System.Windows.WindowState.Normal;
+        };
         SizeChanged += (_, _) => WindowEffects.UpdateRegion(this);
     }
 
@@ -74,14 +87,67 @@ public partial class MainWindow : Window
 
     private bool IsCompactMode => _app.Settings.Mode == WidgetMode.Compact;
 
+    private static readonly uint TaskbarCreatedMessage = Interop.Native.RegisterWindowMessage("TaskbarCreated");
+
     private void OnSourceInitialized(object? sender, EventArgs e)
     {
+        AttachToDesktop();
+        // Explorer restarts recreate the desktop window; re-attach when the shell comes back.
+        System.Windows.Interop.HwndSource.FromHwnd(new System.Windows.Interop.WindowInteropHelper(this).Handle)?.AddHook(WndProc);
         ApplyWindowSettings();
         ApplyModeLayout();
         _app.ApplyGlass();
         var state = IsCompactMode ? _app.Settings.Compact : _app.Settings.Expanded;
         if (!WindowPlacement.TryRestore(this, state)) WindowPlacement.PlaceDefault(this);
         _initialized = true;
+    }
+
+    private void AttachToDesktop()
+    {
+        var ok = WindowEffects.AttachToDesktop(this);
+        _app.Log.Info(ok ? "Widget attached to the desktop (survives Show desktop)" : "Desktop window not found; widget behaves as a normal window");
+    }
+
+    // While true the widget may come to the front (shown from the tray); it drops back on deactivation.
+    private bool _peeking;
+
+    /// <summary>True when the widget lives on the desktop layer: under every app window.</summary>
+    private bool KeepAtBottom => !_app.Settings.AlwaysOnTop && !_peeking;
+
+    private nint WndProc(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    {
+        if (TaskbarCreatedMessage != 0 && (uint)msg == TaskbarCreatedMessage)
+        {
+            Dispatcher.BeginInvoke(AttachToDesktop);
+        }
+        else if (msg == Native.WM_WINDOWPOSCHANGING && KeepAtBottom)
+        {
+            // Every z-order change (click, activation, drag) is redirected to the bottom of the stack,
+            // so app windows dragged over the widget always cover it.
+            var pos = System.Runtime.InteropServices.Marshal.PtrToStructure<Native.WINDOWPOS>(lParam);
+            if ((pos.flags & Native.SWP_NOZORDER) == 0 && pos.hwndInsertAfter != Native.HWND_BOTTOM)
+            {
+                pos.hwndInsertAfter = Native.HWND_BOTTOM;
+                System.Runtime.InteropServices.Marshal.StructureToPtr(pos, lParam, false);
+            }
+        }
+        return 0;
+    }
+
+    /// <summary>Brings the widget to the front until the user switches to another window.</summary>
+    internal void Peek()
+    {
+        if (_app.Settings.AlwaysOnTop) return;
+        _peeking = true;
+        Activate();
+    }
+
+    /// <summary>Moves the widget to the bottom of the z-order (desktop layer).</summary>
+    internal void SendToBottom()
+    {
+        if (!KeepAtBottom) return;
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if (hwnd != 0) Native.SetWindowPos(hwnd, Native.HWND_BOTTOM, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
     }
 
     /// <summary>Applies the backdrop and returns the effective mode.</summary>
@@ -95,8 +161,15 @@ public partial class MainWindow : Window
     {
         var s = _app.Settings;
         Topmost = s.AlwaysOnTop;
-        ShowInTaskbar = s.ShowInTaskbar;
-        WindowEffects.SetToolWindow(this, !s.ShowInTaskbar);
+        // WPF's ShowInTaskbar would re-parent the window to a hidden owner and undo the desktop attachment,
+        // so the taskbar button is controlled through extended styles instead.
+        if (WindowEffects.SetToolWindow(this, !s.ShowInTaskbar) && IsVisible)
+        {
+            // The shell only re-reads taskbar styles when the window is shown again.
+            Hide();
+            Show();
+        }
+        SendToBottom();
         ResizeGrip.Visibility = s.LockPosition ? Visibility.Collapsed : Visibility.Visible;
     }
 
